@@ -31,5 +31,8 @@ jobs:
       - name: Engine coverage
         run: pnpm --filter @bracketeer/engine test:coverage
 
+      - name: App coverage
+        run: pnpm --filter @bracketeer/web test:coverage
+
       - name: Build
         run: pnpm build

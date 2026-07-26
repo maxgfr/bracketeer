@@ -11,6 +11,7 @@ import { appendEvent, type EventEnvelope } from "@bracketeer/engine";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Masthead } from "../components/Masthead.js";
+import { ShapeDiagram } from "../components/ShapeDiagram.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
 import { CATEGORIES, examplesIn, EXAMPLES } from "../lib/examples.js";
 import { actorId, randomId, randomSeed, saveLog } from "../lib/storage.js";
@@ -166,12 +167,25 @@ export function NewTournament() {
                               </span>
                               <Label>{option.signature}</Label>
                             </span>
-                            <span className="text-ink-2 mt-1 block max-w-[64ch] text-sm leading-snug">
-                              {option.summary}
-                            </span>
-                            {/* How much of everyone's day this costs. */}
-                            <span className="text-ink-3 mt-1 block text-xs">
-                              Matches each: {option.games}
+
+                            <span className="mt-2 flex flex-wrap items-start gap-x-5 gap-y-2 sm:flex-nowrap">
+                              {/*
+                                The drawing does the explaining that prose is bad
+                                at: how many rounds, what feeds what, whether
+                                anything carries forward.
+                              */}
+                              <span className="border-rule bg-paper-raised block w-full max-w-64 shrink-0 border px-2 py-1">
+                                <ShapeDiagram config={option.config} />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="text-ink-2 block max-w-[52ch] text-sm leading-snug">
+                                  {option.summary}
+                                </span>
+                                {/* How much of everyone's day this costs. */}
+                                <span className="text-ink-3 mt-1.5 block text-xs">
+                                  Matches each: {option.games}
+                                </span>
+                              </span>
                             </span>
                           </span>
                         </label>

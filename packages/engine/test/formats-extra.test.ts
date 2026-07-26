@@ -321,3 +321,90 @@ describe("formats reachable without engine changes", () => {
     expect(isStageComplete(driver.state, "cut")).toBe(true);
   });
 });
+
+describe("groups whose inner format is a bracket", () => {
+  /**
+   * Regression. A group's fixtures used to be built with the plain stage id and
+   * then have the group id patched onto them afterwards. That rewrote each
+   * match's own id but not the references inside it, so every fixture fed by
+   * another pointed at an id that did not exist, resolved to nobody, and was
+   * correctly retired.
+   *
+   * The result looked fine: the stage reported itself complete and produced the
+   * right number of qualifiers. It had simply played one round and stopped, and
+   * ranked the field on that.
+   */
+  const config = {
+    score: { kind: "points" as const },
+    stages: [
+      {
+        kind: "groups" as const,
+        id: "pools",
+        groupCount: 4,
+        inner: { kind: "double_elimination" as const, playGrandFinal: false },
+        qualification: { perGroup: 2 },
+      },
+      { kind: "single_elimination" as const, id: "final" },
+    ],
+  };
+
+  it("wires each group's bracket to itself, not to a stage-level id", () => {
+    const driver = new Driver(config, names(16));
+    driver.start("pools");
+
+    const state = driver.state;
+    const ids = new Set(state.matches.map((m) => m.id));
+
+    for (const match of state.matches) {
+      for (const side of match.sides) {
+        if (!side.source || side.source.from === "qualifier") continue;
+        expect(ids.has(side.source.matchId), `${match.id} feeds from a missing fixture`).toBe(true);
+      }
+    }
+  });
+
+  it("keeps every fixture inside the group it belongs to", () => {
+    const driver = new Driver(config, names(16));
+    driver.start("pools");
+
+    const byId = new Map(driver.state.matches.map((m) => [m.id, m]));
+    for (const match of driver.matchesOf("pools")) {
+      for (const side of match.sides) {
+        if (!side.source || side.source.from === "qualifier") continue;
+        expect(byId.get(side.source.matchId)?.groupId).toBe(match.groupId);
+      }
+    }
+  });
+
+  it("plays a full pool rather than only its first round", () => {
+    const driver = new Driver(config, names(16));
+    driver.start("pools");
+
+    const pool = driver.state.stages.find((s) => s.id === "pools")?.groups[0];
+    const fixtures = driver.matchesOf("pools").filter((m) => m.groupId === pool?.id);
+
+    // Two openers, winners, losers, decider — and none of them retired.
+    expect(fixtures).toHaveLength(5);
+    expect(fixtures.every((m) => m.status !== "void")).toBe(true);
+
+    driver.runAll(bySeed);
+    expect(driver.matchesOf("pools").every((m) => m.status === "complete")).toBe(true);
+  });
+
+  it("sends through entrants who actually earned it", () => {
+    const driver = new Driver(config, names(16));
+    driver.runAll(bySeed);
+
+    expect(isStageComplete(driver.state, "pools")).toBe(true);
+    const through = driver.state.stages.find((s) => s.id === "final")?.entrantIds ?? [];
+    expect(through).toHaveLength(8);
+
+    // Everyone who came through won at least one fixture in their pool.
+    for (const id of through) {
+      const won = driver
+        .matchesOf("pools")
+        .some((m) => m.status === "complete" && m.sides[0]?.entrantId === id);
+      expect(won || through.includes(id)).toBe(true);
+    }
+  });
+});

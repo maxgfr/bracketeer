@@ -160,6 +160,15 @@ function buildStageMatches(
   config: StageConfig,
   entrantIds: readonly EntrantId[],
   groups: readonly Group[],
+  /**
+   * Set when building one group's fixtures. It must reach the builders rather
+   * than being patched onto the ids afterwards: a bracket wires each empty slot
+   * to the fixture that fills it, and rewriting the match id without rewriting
+   * those references leaves every later fixture pointing at an id that does not
+   * exist. They then resolve to nobody, and the engine correctly retires them —
+   * so a pool would silently play its first round and stop.
+   */
+  groupId: string | null = null,
 ): Match[] {
   const stageId = config.id;
   const rng = stageRng(state, stageId, "draw");
@@ -184,10 +193,11 @@ function buildStageMatches(
         entrantIds,
         rungs: config.rungs,
         hasHomeSide,
+        groupId,
       });
 
     case "page_playoff":
-      return buildPagePlayoff({ stageId, entrantIds, hasHomeSide });
+      return buildPagePlayoff({ stageId, entrantIds, hasHomeSide, groupId });
 
     case "single_elimination":
       return buildSingleElimination({
@@ -197,6 +207,7 @@ function buildStageMatches(
         consolation: config.consolation,
         rng,
         hasHomeSide,
+        groupId,
       });
 
     case "double_elimination":
@@ -209,6 +220,7 @@ function buildStageMatches(
         playGrandFinal: config.playGrandFinal,
         rng,
         hasHomeSide,
+        groupId,
       });
 
     case "round_robin":
@@ -218,6 +230,7 @@ function buildStageMatches(
         legs: config.legs,
         mirrorLegs: config.mirrorLegs,
         hasHomeSide,
+        groupId,
       });
 
     case "swiss":
@@ -229,11 +242,7 @@ function buildStageMatches(
     case "groups":
       return groups.flatMap((group) => {
         const inner = { ...config.inner, id: stageId } as StageConfig;
-        return buildStageMatches(state, inner, group.entrantIds, []).map((match) => ({
-          ...match,
-          groupId: group.id,
-          id: match.id.replace(`${stageId}.`, `${stageId}.${group.id}.`),
-        }));
+        return buildStageMatches(state, inner, group.entrantIds, [], group.id);
       });
   }
 }

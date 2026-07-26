@@ -37,8 +37,9 @@ look nothing alike are usually the same structure with a couple of settings chan
 | **More than two at a time** | heats of four · against the clock · rotating partners |
 | **No end date** | challenge ladder |
 
-Every one of them ships as a file in [`examples/`](examples), and every one is a point in the same
-configuration space. Change the score kind and the tiebreak order on "paired by record" and you have
+The app draws each one, and the drawing is traced from a tournament the engine actually plays — so
+a diagram cannot describe a structure the rules do not produce. Every shape ships as a file in
+[`examples/`](examples), and every one is a point in the same configuration space. Change the score kind and the tiebreak order on "paired by record" and you have
 turned a games night into a rated championship. Nothing in the engine noticed.
 
 ## Sharing without a server
@@ -72,7 +73,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 221 engine tests + 159 app tests
+pnpm test         # 226 engine tests + 271 app tests
 pnpm typecheck
 pnpm build
 ```

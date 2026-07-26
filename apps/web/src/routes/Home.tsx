@@ -29,7 +29,15 @@ export function Home() {
       saveLog(id, log, { name: state.name || "Imported", entrants: state.entrants.length });
       navigate(`/t/${id}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "That file could not be read.");
+      // fromJsonFile explains a wrong-format or newer-version file usefully.
+      // Anything else is a JSON parse error, whose message means nothing to
+      // somebody who just picked the wrong file out of their downloads.
+      const message = cause instanceof Error ? cause.message : "";
+      setError(
+        message.includes("Bracketeer")
+          ? message
+          : "That file could not be read. It should be a .json file exported from Bracketeer.",
+      );
     }
   };
 
@@ -57,6 +65,7 @@ export function Home() {
             ref={fileInput}
             type="file"
             accept="application/json,.json"
+            aria-label="Open a tournament file"
             className="sr-only"
             onChange={(event) => {
               const file = event.target.files?.[0];
@@ -100,6 +109,7 @@ export function Home() {
                     </Figure>
                     <Button
                       variant="quiet"
+                      ariaLabel={`Remove ${tournament.name} from this device`}
                       title={`Remove ${tournament.name} from this device`}
                       onClick={() => {
                         forgetTournament(tournament.id);

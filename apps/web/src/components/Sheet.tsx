@@ -116,6 +116,7 @@ export function Button({
   disabled = false,
   className = "",
   title,
+  ariaLabel,
 }: {
   children: ReactNode;
   onClick?: () => void;
@@ -124,6 +125,8 @@ export function Button({
   disabled?: boolean;
   className?: string;
   title?: string;
+  /** For a bare verb that repeats down a list — "Remove", "Edit", "Withdraw". */
+  ariaLabel?: string;
 }) {
   const styles = {
     default:
@@ -137,6 +140,7 @@ export function Button({
     <button
       type={type}
       title={title}
+      aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled}
       className={`sheet-label inline-flex min-h-9 items-center justify-center gap-1.5 px-3 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${styles} ${className}`}
