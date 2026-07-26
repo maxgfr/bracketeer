@@ -1,0 +1,227 @@
+/**
+ * The tournament.
+ *
+ * A masthead, a control strip that only ever offers the one thing that can
+ * happen next, and the sheet itself. The organiser should never have to work out
+ * which button starts the round.
+ */
+
+import {
+  advanceStage,
+  isStageComplete,
+  nextStageToStart,
+  startStage,
+
+} from "@bracketeer/engine";
+import { useEffect, useMemo, useState } from "react";
+import { NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Masthead } from "../components/Masthead.js";
+import { Button, Notice } from "../components/Sheet.js";
+import { decode } from "../lib/codec.js";
+import { STAGE_LABELS } from "../lib/format.js";
+import { useTournament } from "../lib/useTournament.js";
+import { PeerBar, usePeers } from "../sync/PeerBar.js";
+import { CalendarPanel } from "./panels/Calendar.js";
+import { ConfigPanel } from "./panels/Config.js";
+import { DrawPanel } from "./panels/Draw.js";
+import { EntrantsPanel } from "./panels/Entrants.js";
+import { FixturesPanel } from "./panels/Fixtures.js";
+import { SharePanel } from "./panels/Share.js";
+import { StandingsPanel } from "./panels/Standings.js";
+import { NotFound } from "./NotFound.js";
+
+const TABS = [
+  { to: "", label: "Fixtures", end: true },
+  { to: "draw", label: "Draw" },
+  { to: "standings", label: "Standings" },
+  { to: "calendar", label: "Calendar" },
+  { to: "entrants", label: "Entrants" },
+  { to: "rules", label: "Rules" },
+  { to: "share", label: "Share" },
+];
+
+export function TournamentRoute() {
+  const { id = "" } = useParams();
+  const location = useLocation();
+
+  /**
+   * A shared link carries the whole tournament in the hash. Read it once, on
+   * mount, so that later edits are not overwritten by the URL the reader arrived
+   * on.
+   */
+  const fromLink = useMemo(() => {
+    const data = new URLSearchParams(location.search).get("d");
+    if (!data) return undefined;
+    try {
+      return decode(data);
+    } catch {
+      return undefined;
+    }
+  }, []);
+
+  const [linkFailed] = useState(() => {
+    const data = new URLSearchParams(location.search).get("d");
+    if (!data) return false;
+    try {
+      decode(data);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+
+  const store = useTournament(id, fromLink);
+  const peers = usePeers(id, store);
+  const { state } = store;
+
+  useEffect(() => {
+    document.title = state.name ? `${state.name} — Bracketeer` : "Bracketeer";
+  }, [state.name]);
+
+  if (!id) return <NotFound />;
+
+  const untouched = store.log.length === 0;
+
+  return (
+    <div className="mx-auto max-w-5xl px-5 pb-24">
+      <Masthead>
+        <PeerBar peers={peers} />
+      </Masthead>
+
+      {untouched ? (
+        <div className="py-16">
+          <Notice tone="warn">
+            {linkFailed
+              ? "This link could not be read. It may have been truncated in transit — ask whoever sent it to share it again, or to send you the exported file instead."
+              : "No tournament with that address is stored on this device. If somebody shared a link with you, open the full link rather than this address."}
+          </Notice>
+        </div>
+      ) : (
+        <>
+          <div className="border-rule border-b py-4">
+            <h1 className="text-ink text-2xl font-semibold tracking-[-0.02em]">{state.name}</h1>
+            <p className="text-ink-2 mt-0.5 text-sm">
+              {state.config.stages.map((s) => STAGE_LABELS[s.kind] ?? s.kind).join(" → ")}
+              {" · "}
+              {state.entrants.filter((e) => e.status === "active").length} entrants
+            </p>
+          </div>
+
+          {!store.persisted ? (
+            <div className="mt-4">
+              <Notice tone="warn">
+                This browser is refusing to save. Your tournament is safe in this tab but will be
+                lost if you close it — export a file from the Share tab to keep it.
+              </Notice>
+            </div>
+          ) : null}
+
+          <ControlStrip store={store} />
+
+          <nav className="no-print border-rule-strong mt-6 flex gap-1 overflow-x-auto border-b-2">
+            {TABS.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to ? `/t/${id}/${tab.to}` : `/t/${id}`}
+                end={tab.end}
+                className={({ isActive }) =>
+                  `sheet-label -mb-0.5 shrink-0 border-b-2 px-3 py-2 transition-colors ${
+                    isActive
+                      ? "border-signal text-ink"
+                      : "text-ink-3 hover:text-ink border-transparent"
+                  }`
+                }
+              >
+                {tab.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="mt-8">
+            <Routes>
+              <Route index element={<FixturesPanel store={store} />} />
+              <Route path="draw" element={<DrawPanel store={store} />} />
+              <Route path="standings" element={<StandingsPanel store={store} />} />
+              <Route path="calendar" element={<CalendarPanel store={store} />} />
+              <Route path="entrants" element={<EntrantsPanel store={store} />} />
+              <Route path="rules" element={<ConfigPanel store={store} />} />
+              <Route path="share" element={<SharePanel store={store} peers={peers} />} />
+            </Routes>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * What can happen next.
+ *
+ * Only ever one primary action, worked out from the state rather than left to
+ * the organiser to deduce: open the next stage, draw the next round, or nothing
+ * because there are results outstanding.
+ */
+function ControlStrip({ store }: { store: ReturnType<typeof useTournament> }) {
+  const { state, dispatch } = store;
+
+  const action = useMemo(() => {
+    const toStart = nextStageToStart(state);
+    if (toStart) {
+      const config = state.config.stages.find((s) => s.id === toStart);
+      const started = state.stages.length > 0;
+      return {
+        label: started ? `Start ${config?.name || STAGE_LABELS[config?.kind ?? ""] || "next stage"}` : "Start the tournament",
+        run: () => dispatch(startStage(state, toStart)),
+        enabled: state.entrants.some((e) => e.status === "active"),
+        note: state.entrants.some((e) => e.status === "active")
+          ? null
+          : "Add some entrants first.",
+      };
+    }
+
+    for (const stage of state.stages) {
+      const events = advanceStage(state, stage.id);
+      if (events.length > 0) {
+        return {
+          label: "Draw the next round",
+          run: () => dispatch(events),
+          enabled: true,
+          note: null,
+        };
+      }
+    }
+
+    const running = state.stages.find((s) => !isStageComplete(state, s.id));
+    if (running) {
+      const outstanding = state.matches.filter(
+        (m) => m.stageId === running.id && m.status === "ready",
+      ).length;
+      return {
+        label: null,
+        run: () => {},
+        enabled: false,
+        note: outstanding > 0 ? `${outstanding} fixture${outstanding === 1 ? "" : "s"} still to be played.` : null,
+      };
+    }
+
+    return { label: null, run: () => {}, enabled: false, note: "Every stage is complete." };
+  }, [state, dispatch]);
+
+  return (
+    <div className="no-print border-rule mt-4 flex flex-wrap items-center gap-3 border-b py-3">
+      {action.label ? (
+        <Button variant="primary" onClick={action.run} disabled={!action.enabled} className="min-h-10">
+          {action.label}
+        </Button>
+      ) : null}
+      {action.note ? <span className="text-ink-2 text-sm">{action.note}</span> : null}
+      <div className="ml-auto flex items-center gap-1">
+        <Button variant="quiet" onClick={store.undo} disabled={!store.canUndo} title="Undo your last change">
+          Undo
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export type Store = ReturnType<typeof useTournament>;

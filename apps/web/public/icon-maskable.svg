@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bracketeer">
+  <!-- Maskable: the mark is inset to the safe zone so a circular crop keeps it whole. -->
+  <rect width="64" height="64" fill="#fbfbfc"/>
+  <g fill="none" stroke="#20232c" stroke-width="2.5" stroke-linecap="square">
+    <path d="M18 24 H27 V32 H34"/>
+    <path d="M18 40 H27 V32"/>
+  </g>
+  <rect x="34" y="28" width="12" height="8" fill="#d63b1f"/>
+</svg>

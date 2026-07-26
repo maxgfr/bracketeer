@@ -1,0 +1,92 @@
+/**
+ * The store.
+ *
+ * One log in, one state out. Everything the interface does is `dispatch(event)`,
+ * which appends to the log, persists it, and lets replay produce the new state.
+ * There is no second source of truth to fall out of step, and no mutation for a
+ * peer's arriving events to conflict with.
+ */
+
+import {
+  computeRatings,
+  mergeLogs,
+  ratingValues,
+  replay,
+  undoLast,
+  appendEvent,
+  type DomainEvent,
+  type EventLog,
+  type TournamentState,
+} from "@bracketeer/engine";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { actorId, loadLog, saveLog } from "./storage.js";
+
+export interface TournamentStore {
+  id: string;
+  log: EventLog;
+  state: TournamentState;
+  ratings: Map<string, number>;
+  /** Append events and persist. */
+  dispatch: (events: DomainEvent | DomainEvent[]) => void;
+  /** Merge a log arriving from a peer or a file. */
+  absorb: (incoming: EventLog) => void;
+  /** Replace the log wholesale, as an import does. */
+  replace: (log: EventLog) => void;
+  undo: () => void;
+  canUndo: boolean;
+  /** False when the browser refused to persist — private mode, or a full quota. */
+  persisted: boolean;
+  actor: string;
+}
+
+export function useTournament(id: string, initial?: EventLog): TournamentStore {
+  const actor = useMemo(() => actorId(), []);
+  const [log, setLog] = useState<EventLog>(() => initial ?? loadLog(id) ?? []);
+  const [persisted, setPersisted] = useState(true);
+
+  const state = useMemo(() => replay(log), [log]);
+  const ratings = useMemo(() => ratingValues(computeRatings(state)), [state]);
+
+  // Persist whenever the log changes, including changes arriving from a peer.
+  const lastSaved = useRef<EventLog | null>(null);
+  useEffect(() => {
+    if (log.length === 0 || lastSaved.current === log) return;
+    lastSaved.current = log;
+    const ok = saveLog(id, log, {
+      name: state.name || "Untitled",
+      entrants: state.entrants.length,
+    });
+    setPersisted(ok);
+  }, [id, log, state.name, state.entrants.length]);
+
+  const dispatch = useCallback(
+    (events: DomainEvent | DomainEvent[]) => {
+      const list = Array.isArray(events) ? events : [events];
+      if (list.length === 0) return;
+      setLog((current) => {
+        let next = current;
+        for (const event of list) next = appendEvent(next, actor, event, Date.now());
+        return next;
+      });
+    },
+    [actor],
+  );
+
+  const absorb = useCallback((incoming: EventLog) => {
+    setLog((current) => {
+      const merged = mergeLogs(current, incoming);
+      // Nothing new: keep the existing array so React skips the re-render.
+      return merged.length === current.length ? current : merged;
+    });
+  }, []);
+
+  const replace = useCallback((next: EventLog) => setLog(next), []);
+
+  const undo = useCallback(() => {
+    setLog((current) => undoLast(current, actor));
+  }, [actor]);
+
+  const canUndo = useMemo(() => log.some((e) => e.actor === actor), [log, actor]);
+
+  return { id, log, state, ratings, dispatch, absorb, replace, undo, canUndo, persisted, actor };
+}

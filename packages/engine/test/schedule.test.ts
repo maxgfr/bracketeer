@@ -5,13 +5,15 @@ import { findConflicts, planSchedule, scheduleEvents, toIcs } from "../src/sched
 import { bySeed, Driver, names } from "./tournament.js";
 
 const schedule = {
-  startsAt: "2026-06-01T09:00:00.000Z",
+  startsAt: "2026-06-01T09:00:00.000Z" as string | null,
   matchDurationMinutes: 45,
   breakBetweenRoundsMinutes: 15,
   venues: [
     { id: "p1", name: "Piste 1", capacity: 1 },
     { id: "p2", name: "Piste 2", capacity: 1 },
   ],
+  concurrentMatches: null,
+  timezone: "UTC",
 };
 
 function scheduled(entrants = 8) {
