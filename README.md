@@ -26,8 +26,9 @@ anywhere in the engine. There are six independent axes, and a sport is just a po
 Compose them and you get real formats without writing code:
 
 - **Pétanque concours** — `closest_record` pairing, `full_consolation`, points capped at 13,
-  tiebreakers `[wins, buchholz, point_diff]`. Lose 13–11 to the eventual winner and you still
-  outrank someone who beat the last seed.
+  tiebreakers `[wins, buchholz, point_diff]`. Two players on the same record are then separated by
+  how hard their draw was, so narrow losses to the top seeds count for more than an easy run
+  through the bottom of the field.
 - **Chess Swiss** — `outcome` scoring with draws, `closest_record` pairing, `[points,
   buchholz, sonneborn_berger]`.
 - **Football league** — `round_robin` with two legs and home/away, 3–1–0 points,

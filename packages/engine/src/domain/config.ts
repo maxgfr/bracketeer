@@ -189,6 +189,15 @@ export const tiebreakerSchema = z.object({
 
 export const standingsConfigSchema = z
   .object({
+    /**
+     * Where an entrant's league points come from.
+     *
+     * "outcome" awards them by result, through the points system below: a win is
+     * worth 3, a draw 1. "score" counts what you actually scored, which is how a
+     * Mario Kart cup or an athletics meeting works — finishing fourth in a field
+     * of twelve is still worth something.
+     */
+    pointsSource: z.enum(["outcome", "score"]).default("outcome"),
     pointsSystem: pointsSystemSchema,
     /**
      * Applied in order until the tie breaks. The final entry should always
