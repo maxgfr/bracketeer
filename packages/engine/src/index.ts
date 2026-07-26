@@ -19,6 +19,7 @@
 
 export const VERSION = "0.1.0";
 
+export * from "./codec/index.js";
 export * from "./commands/index.js";
 export * from "./domain/config.js";
 export * from "./domain/entities.js";
@@ -33,5 +34,6 @@ export * from "./formats/roundRobin.js";
 export * from "./formats/swiss.js";
 export * from "./pairing/index.js";
 export * from "./rating/index.js";
+export * from "./schedule/index.js";
 export * from "./standings/index.js";
 export * from "./util/rng.js";
