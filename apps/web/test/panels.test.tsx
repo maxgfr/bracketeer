@@ -19,6 +19,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "../src/App.js";
+import { encode } from "../src/lib/codec.js";
 import { PeerBar, type PeerState } from "../src/sync/PeerBar.js";
 
 /** Write a tournament into storage without rendering anything. */
@@ -855,5 +856,118 @@ describe("the live-sync indicator", () => {
     );
     expect(screen.getByText("Sync unavailable")).toBeInTheDocument();
     expect(screen.getByTitle("Blocked by this network.")).toBeInTheDocument();
+  });
+});
+
+describe("opening a shared link when you already have the tournament", () => {
+  /**
+   * The flow that matters most, and the one that used to lose work: two people
+   * running the same tournament from the same link. The link is a snapshot, and
+   * treating it as the truth throws away whatever the person opening it has
+   * done since.
+   */
+  function tournamentLog(names: string[]) {
+    const at = 1_700_000_000_000;
+    let log: EventEnvelope[] = [];
+    const add = (event: DomainEvent) => {
+      log = appendEvent(log, "organiser", event, at + log.length);
+    };
+    add(
+      createTournament({
+        name: "Club Open",
+        config: { score: { kind: "points", target: 13 } },
+        seed: 42,
+        createdAt: new Date(at).toISOString(),
+      }),
+    );
+    names.forEach((name, i) => add(addEntrant({ id: `e${i}`, name, seed: i + 1 })));
+    for (const event of startStage(replay(log), "main")) add(event);
+    return log;
+  }
+
+  it("keeps scores entered locally when the link is opened again", async () => {
+    const shared = tournamentLog(four);
+
+    // This device has already recorded a result the link knows nothing about.
+    const match = replay(shared).matches.find((m) => m.status === "ready")!;
+    const local = appendEvent(
+      shared,
+      "this-device",
+      { type: "result_reported", matchId: match.id, result: { kind: "points", scores: [13, 4] } },
+      Date.now(),
+    );
+    localStorage.setItem("bracketeer.log.demo", JSON.stringify(local));
+
+    // Now the older link arrives again — pasted in a chat an hour ago.
+    window.location.hash = `#/t/demo?d=${encode(shared)}`;
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    // The result survives: one played, not none.
+    await waitFor(() => expect(screen.getByText(/1 played/i)).toBeInTheDocument());
+  });
+
+  it("takes in what the link knows that this device does not", async () => {
+    const shared = tournamentLog(four);
+    const match = replay(shared).matches.find((m) => m.status === "ready")!;
+
+    // The link is ahead: it carries a result this device has never seen.
+    const ahead = appendEvent(
+      shared,
+      "organiser",
+      { type: "result_reported", matchId: match.id, result: { kind: "points", scores: [13, 9] } },
+      Date.now(),
+    );
+    localStorage.setItem("bracketeer.log.demo", JSON.stringify(shared));
+
+    window.location.hash = `#/t/demo?d=${encode(ahead)}`;
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText(/1 played/i)).toBeInTheDocument());
+  });
+
+  it("combines both sides when each has something the other lacks", async () => {
+    const shared = tournamentLog(four);
+    const ready = replay(shared).matches.filter((m) => m.status === "ready");
+    expect(ready.length).toBeGreaterThanOrEqual(2);
+
+    const mine = appendEvent(
+      shared,
+      "this-device",
+      { type: "result_reported", matchId: ready[0]!.id, result: { kind: "points", scores: [13, 4] } },
+      1_700_000_100_000,
+    );
+    const theirs = appendEvent(
+      shared,
+      "organiser",
+      { type: "result_reported", matchId: ready[1]!.id, result: { kind: "points", scores: [13, 6] } },
+      1_700_000_100_001,
+    );
+
+    localStorage.setItem("bracketeer.log.demo", JSON.stringify(mine));
+    window.location.hash = `#/t/demo?d=${encode(theirs)}`;
+    render(<App />);
+
+    // Both results are present, so the round is complete and the next can be drawn.
+    await waitFor(() => expect(screen.getByText(/2 played/i)).toBeInTheDocument());
+  });
+
+  it("still opens a link for a tournament this device has never seen", async () => {
+    const shared = tournamentLog(four);
+    window.location.hash = `#/t/brand-new?d=${encode(shared)}`;
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Club Open"),
+    );
+    expect(screen.getByText(/4 entrants/)).toBeInTheDocument();
+  });
+});
+
+describe("what sharing a link actually grants", () => {
+  it("says that whoever joins can enter scores, not only read them", () => {
+    open({ score: { kind: "points" } }, four, "share");
+    expect(screen.getByText(/can enter scores, not just read them/i)).toBeInTheDocument();
+    expect(screen.getByText(/no separate spectator mode/i)).toBeInTheDocument();
   });
 });

@@ -50,7 +50,9 @@ and `replay(log)` produces the state. One decision pays for itself four times:
 - **Merging peers is set union.** Two devices that were apart for ten minutes
   take the union of their events, sort by `(lamport, actor, seq)`, and replay.
   Both reach identical state, in any order, with no conflict resolution to get
-  wrong.
+  wrong. This is also why opening a shared link *merges* with whatever is already
+  stored rather than replacing it: choosing either side would throw away real
+  work, and the union cannot.
 - **Undo is dropping an event.**
 - **It is reproducible**, which makes golden-file testing possible.
 
@@ -116,6 +118,9 @@ components and catch the wiring that engine unit tests cannot.
 
 ## Honest limits
 
+- **A shared link grants write access.** Anyone who opens it and joins can enter
+  scores; there is no separate spectator mode for live sync. The embed route is
+  the read-only one, and the app says so where the link is copied.
 - **Peer-to-peer sync depends on infrastructure we do not control.** Devices meet
   through public relays, and it only works while at least one participant has the
   page open. Some networks block it. The app says so on the page rather than in a

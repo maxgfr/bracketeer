@@ -73,7 +73,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 226 engine tests + 271 app tests
+pnpm test         # 226 engine tests + 276 app tests
 pnpm typecheck
 pnpm build
 ```

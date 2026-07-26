@@ -39,9 +39,24 @@ export interface TournamentStore {
   actor: string;
 }
 
-export function useTournament(id: string, initial?: EventLog): TournamentStore {
+export function useTournament(id: string, fromLink?: EventLog): TournamentStore {
   const actor = useMemo(() => actorId(), []);
-  const [log, setLog] = useState<EventLog>(() => initial ?? loadLog(id) ?? []);
+
+  /**
+   * A link and a local copy are merged, never one chosen over the other.
+   *
+   * Taking the link's word for it loses work: two people running the same
+   * tournament from the same link, one enters three scores, then re-opens the
+   * link somebody pasted in a chat an hour ago — and their scores are gone.
+   * Taking the local copy's word is the mirror of the same mistake.
+   *
+   * Merging is always safe here. The log is an append-only set of immutable
+   * events with a total order, so the union is exactly what both devices should
+   * have, and no event can be lost by it.
+   */
+  const [log, setLog] = useState<EventLog>(() =>
+    mergeLogs(loadLog(id) ?? [], fromLink ?? []),
+  );
   const [persisted, setPersisted] = useState(true);
 
   const state = useMemo(() => replay(log), [log]);

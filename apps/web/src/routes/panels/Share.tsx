@@ -116,10 +116,17 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
         </p>
 
         <Notice>
-          There is no server behind this. Devices find each other through public relays we do not
-          control, and it only works while at least one participant has the page open. Some
-          networks block it entirely. The link and the file above are the copies that last.
+          Anyone who opens the link and joins can enter scores, not just read them — there is no
+          separate spectator mode. For an audience, send the embed below instead.
         </Notice>
+
+        <div className="mt-2">
+          <Notice>
+            There is no server behind this. Devices find each other through public relays we do not
+            control, and it only works while at least one participant has the page open. Some
+            networks block it entirely. The link and the file above are the copies that last.
+          </Notice>
+        </div>
 
         <div className="flex flex-wrap items-center gap-3 py-5">
           {peers.status === "off" || peers.status === "unavailable" ? (

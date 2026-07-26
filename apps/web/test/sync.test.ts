@@ -209,3 +209,64 @@ describe("log merging, which is what makes sync safe", () => {
     expect(mergeLogs(log, log)).toEqual(log);
   });
 });
+
+live("the share-link flow", () => {
+  it(
+    "brings a device that opened a stale link fully up to date",
+    async () => {
+      const room = `bracketeer-stale-${Date.now()}-${process.pid}`;
+
+      // What the organiser has now.
+      let current = buildTournament();
+      const state = replay(current);
+      const played = state.matches.filter((m) => m.status === "ready").slice(0, 2);
+      for (const match of played) {
+        current = appendEvent(
+          current,
+          "organiser",
+          { type: "result_reported", matchId: match.id, result: { kind: "points", scores: [13, 5] } },
+          Date.now(),
+        ) as EventEnvelope[];
+      }
+
+      // What a link pasted into a chat an hour ago carries: no results at all.
+      const stale = buildTournament();
+      expect(replay(stale).matches.every((m) => m.result === null)).toBe(true);
+
+      let organiserLog = current;
+      const errors: string[] = [];
+
+      const session = await openSession(room, {
+        readLog: () => organiserLog,
+        onIncoming: (incoming) => {
+          organiserLog = mergeLogs(organiserLog, incoming) as EventEnvelope[];
+        },
+        onPeerCount: () => {},
+        onError: (message) => errors.push(message),
+        rtcPolyfill: RTCPeerConnection,
+      });
+
+      // The other device joins holding only the stale snapshot.
+      const other = spawnPeer(room, JSON.stringify(stale));
+
+      try {
+        const gotIt = await waitFor(() => other.received().length > 0, 45_000);
+        expect(gotIt, `nothing reached the joining device (${errors.join("; ")})`).toBe(true);
+
+        // What it receives carries the results the stale link did not have.
+        const delivered = JSON.parse(other.received()[0] as string) as EventLog;
+        const merged = replay(mergeLogs(stale, delivered));
+        expect(merged.matches.filter((m) => m.result !== null)).toHaveLength(played.length);
+
+        // And the organiser is not knocked backwards by the stale snapshot.
+        expect(replay(organiserLog).matches.filter((m) => m.result !== null)).toHaveLength(
+          played.length,
+        );
+      } finally {
+        other.stop();
+        session.leave();
+      }
+    },
+    120_000,
+  );
+});
