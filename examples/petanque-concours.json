@@ -1,0 +1,58 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Pétanque concours",
+  "summary": "Games to 13, paired against whoever has the same record, with a consolation bracket so a first-round loss is not the end of the day. A hard draw is rewarded rather than punished.",
+  "signature": "closest record · consolation · Buchholz",
+  "config": {
+    "entrant": {
+      "kind": "fixed_team",
+      "teamSize": 2
+    },
+    "score": {
+      "kind": "points",
+      "target": 13
+    },
+    "pairing": {
+      "strategy": "closest_record"
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 1,
+        "draw": 0,
+        "loss": 0,
+        "bye": 1
+      },
+      "tiebreakers": [
+        {
+          "key": "wins"
+        },
+        {
+          "key": "buchholz"
+        },
+        {
+          "key": "point_diff"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "elo",
+      "initial": 1000
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "main",
+        "name": "Concours"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "club",
+        "label": "Club"
+      }
+    ]
+  }
+}

@@ -144,12 +144,12 @@ export const EXAMPLES: Example[] = [
     id: "free-for-all",
     name: "Free-for-all night",
     summary:
-      "Four at a time, scored by where you finish rather than whether you won. Racing games, karts, a shooting heat — anything where the whole field plays at once.",
-    signature: "four sides · finishing position · points by place",
+      "Four at a time, scored by where you finish rather than whether you won, with heats drawn between players of similar ability so nobody spends the night in last place. Racing games, karts, a shooting heat.",
+    signature: "four sides · finishing position · heats by rating",
     config: {
       match: { sidesPerMatch: 4 },
       score: { kind: "placement", pointsByPlace: [15, 12, 10, 8] },
-      pairing: { strategy: "closest_record" },
+      pairing: { strategy: "closest_rating" },
       standings: {
         pointsSource: "score",
         tiebreakers: [{ key: "points" }, { key: "wins" }, { key: "drawn_lot" }],

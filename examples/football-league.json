@@ -1,0 +1,54 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Football league",
+  "summary": "Everyone plays everyone home and away, three points for a win, separated by goal difference. Fixtures carry dates and grounds, and the season exports to a calendar.",
+  "signature": "two legs · home and away · 3-1-0",
+  "config": {
+    "entrant": {
+      "kind": "fixed_team"
+    },
+    "match": {
+      "hasHomeSide": true
+    },
+    "score": {
+      "kind": "points",
+      "allowDraw": true
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 3,
+        "draw": 1,
+        "loss": 0
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "point_diff"
+        },
+        {
+          "key": "points_for"
+        },
+        {
+          "key": "head_to_head"
+        }
+      ]
+    },
+    "rating": {
+      "system": "none"
+    },
+    "schedule": {
+      "matchDurationMinutes": 105,
+      "breakBetweenRoundsMinutes": 0
+    },
+    "stages": [
+      {
+        "kind": "round_robin",
+        "id": "season",
+        "name": "Season",
+        "legs": 2
+      }
+    ]
+  }
+}

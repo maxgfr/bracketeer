@@ -1,0 +1,48 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Free-for-all night",
+  "summary": "Four at a time, scored by where you finish rather than whether you won, with heats drawn between players of similar ability so nobody spends the night in last place. Racing games, karts, a shooting heat.",
+  "signature": "four sides · finishing position · heats by rating",
+  "config": {
+    "match": {
+      "sidesPerMatch": 4
+    },
+    "score": {
+      "kind": "placement",
+      "pointsByPlace": [
+        15,
+        12,
+        10,
+        8
+      ]
+    },
+    "pairing": {
+      "strategy": "closest_rating"
+    },
+    "standings": {
+      "pointsSource": "score",
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "wins"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "trueskill"
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "heats",
+        "name": "Heats",
+        "rounds": 6
+      }
+    ]
+  }
+}

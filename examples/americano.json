@@ -1,0 +1,46 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Padel americano",
+  "summary": "You enter alone and your partner changes every round. Points are individual, so the table ranks players rather than pairs.",
+  "signature": "partners redrawn · individual points",
+  "config": {
+    "entrant": {
+      "kind": "drawn_team",
+      "teamSize": 2,
+      "redrawEachRound": true
+    },
+    "score": {
+      "kind": "points",
+      "target": 24
+    },
+    "pairing": {
+      "strategy": "closest_record"
+    },
+    "standings": {
+      "pointsSource": "score",
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "point_diff"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "elo",
+      "initial": 1000
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "main",
+        "name": "Americano",
+        "rounds": 7
+      }
+    ]
+  }
+}

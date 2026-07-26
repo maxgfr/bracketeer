@@ -1,0 +1,60 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Chess Swiss",
+  "summary": "Draws count for half a point, nobody is eliminated, and ties are broken by the strength of the opposition you faced. Glicko-2 handles players with few rated games.",
+  "signature": "outcome · draws · Sonneborn-Berger",
+  "config": {
+    "score": {
+      "kind": "outcome",
+      "allowDraw": true
+    },
+    "pairing": {
+      "strategy": "closest_record",
+      "constraints": {
+        "avoidSameMeta": {
+          "enabled": true,
+          "field": "club"
+        }
+      }
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 1,
+        "draw": 0.5,
+        "loss": 0,
+        "bye": 1
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "buchholz"
+        },
+        {
+          "key": "sonneborn_berger"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "glicko2",
+      "initial": 1500
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "main",
+        "name": "Swiss"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "club",
+        "label": "Club"
+      }
+    ]
+  }
+}

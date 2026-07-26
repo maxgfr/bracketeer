@@ -1,0 +1,15 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Start from nothing",
+  "summary": "A plain single-elimination bracket you can take apart and rebuild however you like.",
+  "signature": "single elimination · seeded",
+  "config": {
+    "stages": [
+      {
+        "kind": "single_elimination",
+        "id": "main",
+        "name": "Main draw"
+      }
+    ]
+  }
+}

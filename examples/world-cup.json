@@ -1,0 +1,59 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Groups into a knockout",
+  "summary": "Four groups play round robins, the top two from each advance, and the knockout decides it. The classic two-stage tournament.",
+  "signature": "groups → knockout · top two advance",
+  "config": {
+    "entrant": {
+      "kind": "fixed_team"
+    },
+    "score": {
+      "kind": "points",
+      "allowDraw": true
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 3,
+        "draw": 1,
+        "loss": 0
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "point_diff"
+        },
+        {
+          "key": "points_for"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "none"
+    },
+    "stages": [
+      {
+        "kind": "groups",
+        "id": "groups",
+        "name": "Group stage",
+        "groupCount": 4,
+        "inner": {
+          "kind": "round_robin"
+        },
+        "qualification": {
+          "perGroup": 2
+        }
+      },
+      {
+        "kind": "single_elimination",
+        "id": "knockout",
+        "name": "Knockout",
+        "consolation": "third_place"
+      }
+    ]
+  }
+}
