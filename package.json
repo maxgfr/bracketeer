@@ -1,0 +1,23 @@
+{
+  "name": "bracketeer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open-source, configurable, sport-agnostic tournament engine that runs entirely in your browser",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "scripts": {
+    "dev": "pnpm --filter @bracketeer/web dev",
+    "build": "pnpm --filter @bracketeer/web build",
+    "preview": "pnpm --filter @bracketeer/web preview",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm --filter @bracketeer/engine test:watch",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
