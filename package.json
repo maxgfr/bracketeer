@@ -14,7 +14,7 @@
       "esbuild"
     ],
     "overrides": {
-      "brace-expansion": "^5.0.8"
+      "minimatch@9": "^10.2.5"
     }
   },
   "scripts": {
