@@ -22,7 +22,7 @@ you want to change. The complete schema lives in
 |---|---|
 | `individual` | One person or one machine per side. |
 | `fixed_team` | A roster that stays together all tournament. `teamSize` may be `null` for any size. |
-| `drawn_team` | Partners recomposed each round — the pétanque *mêlée*, a padel americano. Set `teamSize` and `redrawEachRound`. |
+| `drawn_team` | Partners recomposed each round: you enter alone and play with somebody different every time. Set `teamSize` and `redrawEachRound`. |
 
 `match.sidesPerMatch` is `2` for head-to-head and `3` or more for a free-for-all:
 a race, a heat, a battle royale. `hasHomeSide` turns on home-and-away balancing.
@@ -31,11 +31,11 @@ a race, a heat, a battle royale. `hasHomeSide` turns on home-and-away balancing.
 
 | `kind` | For | Result shape |
 |---|---|---|
-| `points` | Pétanque, football, basketball, darts | `{ scores: [13, 11] }` |
-| `sets` | Tennis, volleyball, most esports | `{ sets: [[6,4],[3,6],[6,2]] }` |
+| `points` | A number each, however you count it | `{ scores: [13, 11] }` |
+| `sets` | Decided by sets, games or legs | `{ sets: [[6,4],[3,6],[6,2]] }` |
 | `outcome` | Anything where only the verdict is recorded | `{ winner: 0 }` or `{ winner: null }` for a draw |
-| `placement` | Racing, karts, a shooting heat | `{ places: [[2],[0],[3],[1]] }` |
-| `time` | A sprint, a time trial, time survived | `{ times: [12.4, 11.9, null] }` |
+| `placement` | Three or more at once, ranked by finish | `{ places: [[2],[0],[3],[1]] }` |
+| `time` | A measured time or distance | `{ times: [12.4, 11.9, null] }` |
 
 ```jsonc
 { "score": { "kind": "points", "target": 13, "allowDraw": false } }
@@ -59,13 +59,13 @@ qualifiers to the next.
 | `kind` | Notes |
 |---|---|
 | `single_elimination` | `seeding`, `consolation` |
-| `double_elimination` | `grandFinalReset` — must the unbeaten finalist be beaten twice? `playGrandFinal: false` turns it into a pétanque *poule*, where both survivors qualify and there is nothing left for a final to settle |
+| `double_elimination` | `grandFinalReset` — must the unbeaten finalist be beaten twice? `playGrandFinal: false` turns it into a pool where both survivors qualify, so there is nothing left for a final to settle |
 | `round_robin` | `legs` (2 for home and away), `mirrorLegs` |
 | `swiss` | `rounds` (`null` derives `ceil(log2(n))`) |
 | `groups` | `groupCount`, `groupSize`, `distribution`, and an `inner` stage each group plays |
 | `ladder` | `challengeRange`, `takeRungOnWin` |
 | `stepladder` | `rungs` — the lowest qualifier climbs one rung at a time |
-| `page_playoff` | The four-entrant curling finish; top two get a second chance |
+| `page_playoff` | A four-entrant finish; the top two get a second chance |
 
 ```jsonc
 {
@@ -98,12 +98,13 @@ On an elimination stage:
 |---|---|
 | `none` | They go home. |
 | `third_place` | The beaten semi-finalists play off. |
-| `full_consolation` | Everyone beaten in round one enters a second bracket — the pétanque *consolante*. |
+| `full_consolation` | Everyone beaten in round one enters a second bracket of their own. |
 | `repechage` | Losers get a second path, and its winner earns a place in the final. |
 
 `full_consolation` is the direct answer to drawing the eventual champion in round
 one: you lose, you drop into a bracket of the other first-round losers, and you
-still have a tournament to play.
+still have a tournament to play. Some competitions call this the consolante or
+the plate; it is the same thing.
 
 ## 5. Who plays whom — `pairing`
 
@@ -159,9 +160,9 @@ means the same thing whether the sport scores 3-1-0 or 1-0.5-0.
 ```
 
 `pointsSource` is `outcome` (a win is worth a fixed amount) or `score` (what you
-actually scored counts directly — a Mario Kart cup, an athletics meeting).
+actually scored counts directly — a heats night, an athletics meeting).
 
-`initialScore` is the **McMahon system**, standard in European Go: entrants begin
+`initialScore` is the **McMahon system**: entrants begin
 on a score derived from their rating, so a field spanning a huge range of
 strength meets its own level from round one. Unlike accelerated pairings, the
 head start counts right through to the final table.
@@ -266,13 +267,12 @@ are tests asserting it in `packages/engine/test/formats-extra.test.ts`:
 | **King of the hill** | `ladder` |
 | **Consolante / second chance** | `consolation: "full_consolation"` |
 
-**Not implemented:** the compass draw, the eight-bracket format some tennis and
-pickleball clubs use. It is the one named format from a survey of the field that
-this model does not currently reach.
+**Not implemented:** the compass draw, an eight-bracket structure where losers
+fall sideways at every round rather than only the first. It is the one named
+structure from a survey of the field that this model does not currently reach.
 
 ## Worked examples
 
 Every file in [`examples/`](../examples) is a complete configuration reachable
-through these six axes. Compare `petanque-concours.json` with `chess-swiss.json`:
-they differ in the score kind, the points system and the tiebreak order, and in
-nothing else.
+through these six axes, named for what it does rather than for a sport. Compare `all-play-all.json` with `paired-by-record.json`: they differ in the
+structure, the score kind and the tiebreak order, and in nothing else.

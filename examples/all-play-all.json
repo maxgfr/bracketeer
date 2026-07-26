@@ -1,15 +1,9 @@
 {
   "$schema": "https://github.com/maxgfr/bracketeer",
-  "name": "Football league",
-  "summary": "Everyone plays everyone home and away, three points for a win, separated by goal difference. Fixtures carry dates and grounds, and the season exports to a calendar.",
-  "signature": "two legs · home and away · 3-1-0",
+  "name": "Everyone plays everyone",
+  "summary": "Every entrant meets every other exactly once. The fairest possible table and the longest: the number of matches grows with the square of the entry, so it suits a small field.",
+  "signature": "round robin · one leg",
   "config": {
-    "entrant": {
-      "kind": "fixed_team"
-    },
-    "match": {
-      "hasHomeSide": true
-    },
     "score": {
       "kind": "points",
       "allowDraw": true
@@ -38,16 +32,17 @@
     "rating": {
       "system": "none"
     },
-    "schedule": {
-      "matchDurationMinutes": 105,
-      "breakBetweenRoundsMinutes": 0
-    },
     "stages": [
       {
         "kind": "round_robin",
-        "id": "season",
-        "name": "Season",
-        "legs": 2
+        "id": "table",
+        "name": "Table"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
       }
     ]
   }

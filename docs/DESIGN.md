@@ -4,18 +4,24 @@ Why the code is shaped the way it is.
 
 ## The engine knows nothing about sports
 
-The temptation in tournament software is to write `if (sport === 'petanque')`.
-It works for the first sport and gets worse with every one after it, because the
-special cases multiply against each other: pétanque *with* a consolation bracket
-*and* Buchholz *and* teams of two.
+The temptation in tournament software is to write `if (sport === …)`. It works
+for the first sport and gets worse with every one after it, because the special
+cases multiply against each other: this sport *with* a consolation bracket *and*
+strength-of-schedule tiebreaks *and* pairs instead of individuals.
 
 So the engine has no sport concept at all. It has six orthogonal axes — entrant
 kind, score kind, structure, consolation policy, pairing strategy, tiebreak order
-— and a sport is a point in that space. Adding pétanque required no engine
-change; it is a JSON file in `examples/`.
+— and a sport is a point in that space. No sport required an engine change;
+every structure in `examples/` is a JSON file.
 
-The test of the model is whether a format nobody anticipated is expressible. A
-padel americano — you enter alone, your partner changes every round, and the
+This reaches the interface too. The starting points are named for what they do —
+"two lives", "paired by record", "heats of four" — and grouped by the question an
+organiser is actually asking, never by sport. A list of sports is a promise you
+have to keep forever, and it tells everybody whose game is missing that the app
+is not for them.
+
+The test of the model is whether a structure nobody anticipated is expressible.
+Rotating partners — you enter alone, your partner changes every round, and the
 table ranks individuals — is `drawn_team` entrants with `pointsSource: "score"`.
 Nothing was added for it.
 
@@ -120,9 +126,10 @@ components and catch the wiring that engine unit tests cannot.
 - **The TrueSkill implementation is the two-player update generalised to adjacent
   finishing positions**, not the full factor graph. It orders a field correctly;
   it does not model it exactly. That is stated in the source rather than implied.
-- **The compass draw is not implemented.** Of the named formats a survey of the
-  field turned up, it is the only one this model does not reach; everything else
-  either exists or composes.
+- **The compass draw is not implemented** — the eight-bracket structure where
+  losers fall sideways at every round, not only the first. Of the named
+  structures a survey turned up, it is the only one this model does not reach;
+  everything else either exists or composes.
 - **`localStorage` is the only local persistence**, so a cleared browser loses
   what has not been exported. The app warns when the browser refuses to save.
 

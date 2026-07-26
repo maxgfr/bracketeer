@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Knockout with a second draw",
+  "summary": "A knockout, plus a second bracket for everyone beaten in the first round. Drawing the strongest entrant first no longer ends your day, and there are two things to win.",
+  "signature": "single elimination · full consolation",
+  "config": {
+    "stages": [
+      {
+        "kind": "single_elimination",
+        "id": "main",
+        "name": "Main draw",
+        "consolation": "full_consolation"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

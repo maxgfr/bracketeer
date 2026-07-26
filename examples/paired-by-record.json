@@ -1,8 +1,8 @@
 {
   "$schema": "https://github.com/maxgfr/bracketeer",
-  "name": "Chess Swiss",
-  "summary": "Draws count for half a point, nobody is eliminated, and ties are broken by the strength of the opposition you faced. Glicko-2 handles players with few rated games.",
-  "signature": "outcome · draws · Sonneborn-Berger",
+  "name": "Paired by record",
+  "summary": "Only the result is recorded — won, lost or drawn — with a draw worth half. Nobody is eliminated and everyone plays every round, but you are matched against whoever has won as often as you have — so the field sorts itself without meeting everyone. Ties are broken by how hard your draw was, which means narrow losses to the strongest entrants count for more than an easy run.",
+  "signature": "closest record · result only · Buchholz",
   "config": {
     "score": {
       "kind": "outcome",
@@ -13,7 +13,7 @@
       "constraints": {
         "avoidSameMeta": {
           "enabled": true,
-          "field": "club"
+          "field": "affiliation"
         }
       }
     },
@@ -46,14 +46,14 @@
     "stages": [
       {
         "kind": "swiss",
-        "id": "main",
-        "name": "Swiss"
+        "id": "rounds",
+        "name": "Rounds"
       }
     ],
     "entrantFields": [
       {
-        "key": "club",
-        "label": "Club"
+        "key": "affiliation",
+        "label": "Club or team"
       }
     ]
   }

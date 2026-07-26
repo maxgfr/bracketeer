@@ -1,0 +1,27 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Challenge ladder",
+  "summary": "A standing order with no finish. You challenge somebody a few places above you, and beating them takes their position. Runs for a season, or forever.",
+  "signature": "ladder · challenge up to three places",
+  "config": {
+    "stages": [
+      {
+        "kind": "ladder",
+        "id": "ladder",
+        "name": "Ladder",
+        "challengeRange": 3,
+        "takeRungOnWin": true
+      }
+    ],
+    "rating": {
+      "system": "elo",
+      "initial": 1000
+    },
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

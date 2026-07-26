@@ -1,0 +1,15 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Climb to the top seed",
+  "summary": "The lowest qualifier plays the next lowest, and the winner keeps climbing one rung at a time. Finishing top of the earlier stage is worth far more than a bracket makes it: the leader plays once.",
+  "signature": "stepladder",
+  "config": {
+    "stages": [
+      {
+        "kind": "stepladder",
+        "id": "finals",
+        "name": "Finals"
+      }
+    ]
+  }
+}

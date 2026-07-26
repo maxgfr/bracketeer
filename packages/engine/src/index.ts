@@ -3,8 +3,8 @@
  *
  * A sport-agnostic tournament engine.
  *
- * The engine knows nothing about pétanque, chess or football. It knows about
- * six orthogonal axes, and a "sport" is simply a point in that space:
+ * The engine knows nothing about any sport. It knows about six orthogonal
+ * axes, and a "sport" is simply a point in that space:
  *
  *   1. entrant + match shape   who plays, and how many sides meet in one match
  *   2. score kind              how a result is expressed

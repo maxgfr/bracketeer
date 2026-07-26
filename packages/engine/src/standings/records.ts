@@ -195,7 +195,7 @@ export function computeRecords(
 
       // Two ways of earning competition points, chosen by configuration:
       // by result (a win is worth 3) or by score (your finishing points count
-      // directly, as in a Mario Kart cup or an athletics meeting).
+      // directly, as in a heats night or an athletics meeting).
       const earned = standings.pointsSource === "score" && !isBye ? scored : base;
 
       const opponentIds = match.sides

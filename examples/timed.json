@@ -1,0 +1,39 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Against the clock",
+  "summary": "Everyone in a heat records a time and the fastest wins. Anyone who does not finish is recorded as such rather than being given a score they did not earn.",
+  "signature": "six per heat · fastest time",
+  "config": {
+    "match": {
+      "sidesPerMatch": 6
+    },
+    "score": {
+      "kind": "time",
+      "lowerIsBetter": true
+    },
+    "pairing": {
+      "strategy": "random"
+    },
+    "standings": {
+      "tiebreakers": [
+        {
+          "key": "wins"
+        },
+        {
+          "key": "points"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "heats",
+        "name": "Heats",
+        "rounds": 4
+      }
+    ]
+  }
+}

@@ -30,8 +30,7 @@ export interface TiebreakContext {
  *
  * A bye has no real opponent. Counting it as zero would punish whoever happened
  * to draw the odd number, so it counts as a virtual opponent of the entrant's
- * own strength — the same convention chess uses, and the one that keeps a hard
- * draw from being penalised twice.
+ * own strength, which keeps a hard draw from being penalised twice.
  */
 function opponentStrength(
   record: EntrantRecord,

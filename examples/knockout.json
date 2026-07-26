@@ -1,0 +1,21 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Straight knockout",
+  "summary": "One defeat and you are out. The quickest way to get from a large entry to a winner, and the harshest: half the field plays once.",
+  "signature": "single elimination · seeded",
+  "config": {
+    "stages": [
+      {
+        "kind": "single_elimination",
+        "id": "main",
+        "name": "Main draw"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

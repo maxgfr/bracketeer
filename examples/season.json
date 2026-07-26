@@ -1,0 +1,60 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "A season, home and away",
+  "summary": "Everyone meets everyone twice, once on each side. Fixtures carry dates and venues, and the whole calendar exports to any calendar app. Three points for a win, separated by score difference.",
+  "signature": "round robin · two legs · 3-1-0 · scheduled",
+  "config": {
+    "entrant": {
+      "kind": "fixed_team"
+    },
+    "match": {
+      "hasHomeSide": true
+    },
+    "score": {
+      "kind": "points",
+      "allowDraw": true
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 3,
+        "draw": 1,
+        "loss": 0
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "point_diff"
+        },
+        {
+          "key": "points_for"
+        },
+        {
+          "key": "head_to_head"
+        }
+      ]
+    },
+    "rating": {
+      "system": "none"
+    },
+    "schedule": {
+      "matchDurationMinutes": 90,
+      "breakBetweenRoundsMinutes": 0
+    },
+    "stages": [
+      {
+        "kind": "round_robin",
+        "id": "season",
+        "name": "Season",
+        "legs": 2
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Best of three",
+  "summary": "A knockout where each meeting is decided by sets rather than a single score. Longer matches, and far less likely to turn on one bad passage of play.",
+  "signature": "single elimination · best of three sets",
+  "config": {
+    "score": {
+      "kind": "sets",
+      "bestOf": 3
+    },
+    "stages": [
+      {
+        "kind": "single_elimination",
+        "id": "main",
+        "name": "Main draw"
+      }
+    ],
+    "rating": {
+      "system": "elo",
+      "initial": 1200,
+      "elo": {
+        "k": 32
+      }
+    },
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

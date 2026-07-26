@@ -1,0 +1,56 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Paired by record, wide field",
+  "summary": "The same, tuned for an entry that spans beginners and the very strong. Entrants start on a score set by their rating, so people meet their own level from the first round instead of the top half spending three rounds beating the bottom half.",
+  "signature": "closest record · head start by rating · accelerated",
+  "config": {
+    "pairing": {
+      "strategy": "closest_record"
+    },
+    "standings": {
+      "initialScore": {
+        "source": "rating_band",
+        "bandSize": 200,
+        "maxBonus": 3
+      },
+      "pointsSystem": {
+        "win": 1,
+        "draw": 0.5,
+        "loss": 0,
+        "bye": 1
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "buchholz"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "rating": {
+      "system": "glicko2",
+      "initial": 1500
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "rounds",
+        "name": "Rounds",
+        "accelerated": {
+          "rounds": 2,
+          "bonus": 1
+        }
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

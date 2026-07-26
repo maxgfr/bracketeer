@@ -108,11 +108,11 @@ function buildThirdPlace(options: EliminationOptions, size: number): Match[] {
 }
 
 /**
- * The *consolante*: a full knockout for everyone beaten in the first round.
+ * A full knockout for everyone beaten in the first round.
  *
  * This is the direct answer to drawing the champion in round one. You lose, you
  * drop into a bracket of the other first-round losers, and you still have a
- * tournament to play — which is how pétanque concours have always worked.
+ * tournament to play. Some competitions call this the consolante or the plate.
  */
 function buildConsolation(options: EliminationOptions, size: number): Match[] {
   const firstRoundMatches = size / 2;

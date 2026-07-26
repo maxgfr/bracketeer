@@ -1,7 +1,7 @@
 {
   "$schema": "https://github.com/maxgfr/bracketeer",
   "name": "Start from nothing",
-  "summary": "A plain single-elimination bracket you can take apart and rebuild however you like.",
+  "summary": "A plain knockout with every default left alone. Take it apart on the Rules tab and build whatever you actually run.",
   "signature": "single elimination · seeded",
   "config": {
     "stages": [

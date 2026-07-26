@@ -3,8 +3,8 @@
  *
  * Both are small finishes that reward finishing top of the preceding stage far
  * more heavily than a bracket does. They exist because a plain knockout treats
- * the team that topped a 20-week league exactly like the team that scraped in
- * fourth, and several sports decided long ago that this was wrong.
+ * whoever topped a long league exactly like whoever scraped in fourth, and that
+ * is not always the right answer.
  */
 
 import type { EntrantId, Match, StageId } from "../domain/entities.js";
@@ -14,8 +14,7 @@ import { draft, matchId, slot, winnerOf, loserOf } from "./builders.js";
  * A stepladder: the two lowest qualifiers play, and the winner climbs one rung
  * at a time until somebody beats the top seed.
  *
- * Bowling finals work exactly this way. The leader plays once; the fifth seed
- * has to win four times.
+ * The leader plays once; whoever qualified last has to win every round.
  */
 export function buildStepladder(options: {
   stageId: StageId;
@@ -62,8 +61,8 @@ export function buildStepladder(options: {
 }
 
 /**
- * The Page playoff, as used in curling, softball and several cricket
- * competitions.
+ * The Page playoff: a four-entrant finish that gives the top two a second
+ * chance.
  *
  *   1 v 2  — the winner goes straight to the final
  *   3 v 4  — the loser is out, in fourth

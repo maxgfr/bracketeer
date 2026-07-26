@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Two lives",
+  "summary": "Lose once and you drop into the lower half of the draw; lose twice and you are out. The entrant who has never been beaten must be beaten twice to lose the title.",
+  "signature": "double elimination · grand final reset",
+  "config": {
+    "stages": [
+      {
+        "kind": "double_elimination",
+        "id": "main",
+        "name": "Main draw",
+        "grandFinalReset": true
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 {
   "$schema": "https://github.com/maxgfr/bracketeer",
-  "name": "Padel americano",
-  "summary": "You enter alone and your partner changes every round. Points are individual, so the table ranks players rather than pairs.",
-  "signature": "partners redrawn · individual points",
+  "name": "Rotating partners",
+  "summary": "You enter on your own and your partner changes every round. Points are individual, so the table ranks people rather than pairs — which makes it the format for a mixed-ability social evening.",
+  "signature": "partners redrawn each round · individual scoring",
   "config": {
     "entrant": {
       "kind": "drawn_team",
@@ -10,8 +10,7 @@
       "redrawEachRound": true
     },
     "score": {
-      "kind": "points",
-      "target": 24
+      "kind": "points"
     },
     "pairing": {
       "strategy": "closest_record"
@@ -37,8 +36,8 @@
     "stages": [
       {
         "kind": "swiss",
-        "id": "main",
-        "name": "Americano",
+        "id": "rounds",
+        "name": "Rounds",
         "rounds": 7
       }
     ]

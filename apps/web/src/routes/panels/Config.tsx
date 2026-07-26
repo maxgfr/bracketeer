@@ -4,8 +4,8 @@
  * This is the product. Every axis the engine has is editable here, laid out in
  * the order it is applied, with the raw configuration underneath for anything the
  * guided controls do not reach. Nothing is hidden behind a "sport" — changing the
- * pairing strategy and the tiebreak order is how a pétanque concours becomes a
- * chess Swiss.
+ * pairing strategy and the tiebreak order is how one event becomes a completely
+ * different one.
  *
  * Edits are validated before they are committed, so an invalid rule set is
  * refused with a reason rather than replayed into a broken tournament.

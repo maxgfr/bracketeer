@@ -1,9 +1,9 @@
 /**
  * Starting scores — the McMahon system.
  *
- * In a field spanning a huge range of strength, a plain Swiss wastes everybody's
- * first three rounds: the strong players beat beginners, the beginners lose to
- * strong players, and nobody learns anything. McMahon fixes it by starting
+ * In a field spanning a huge range of strength, plain record pairing wastes
+ * everybody's first three rounds: the strong beat the beginners, the beginners
+ * lose to the strong, and nobody learns anything. This fixes it by starting
  * entrants on a score derived from their rating, so people meet their own level
  * from round one.
  *

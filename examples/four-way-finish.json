@@ -1,0 +1,15 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Four-way finish",
+  "summary": "A finish for the top four that rewards finishing first or second: those two get a second chance, the other two do not. Shorter than a double elimination, kinder than a knockout.",
+  "signature": "page playoff",
+  "config": {
+    "stages": [
+      {
+        "kind": "page_playoff",
+        "id": "playoff",
+        "name": "Playoff"
+      }
+    ]
+  }
+}

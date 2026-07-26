@@ -130,7 +130,7 @@ function Explainer() {
   const axes = useMemo(
     () => [
       { axis: "Who plays", options: "one person · a fixed team · partners redrawn each round" },
-      { axis: "How you win", options: "points · sets · a verdict · a finishing order · a time" },
+      { axis: "How you win", options: "a score · sets · a verdict · a finishing order · a time" },
       { axis: "The shape", options: Object.values(STAGE_LABELS).join(" · ").toLowerCase() },
       { axis: "If you lose", options: "nothing · third place · a consolation bracket · repechage" },
       { axis: "Who plays whom", options: "seeded · random · closest record · closest rating · widest gap" },
@@ -143,10 +143,11 @@ function Explainer() {
     <div className="mt-14">
       <Section label="Composed, not preset">
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          There is no pétanque mode and no chess mode. There are six independent choices, and a
-          sport is what you get by combining them. A pétanque concours is closest-record pairing
-          with a consolation bracket and Buchholz tiebreaks. Change three of those and it is a
-          chess Swiss.
+          There are no modes and no sports. There are six independent choices, and every structure
+          is what you get by combining them. Pair people by their record, give the first-round
+          losers a bracket of their own, break ties by how hard somebody's draw was — that is one
+          event. Change three of those settings and it is a different one. Nothing in here knows or
+          cares what you play.
         </p>
         <dl>
           {axes.map((row) => (

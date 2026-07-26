@@ -1,0 +1,51 @@
+{
+  "$schema": "https://github.com/maxgfr/bracketeer",
+  "name": "Rounds, then a top cut",
+  "summary": "Several rounds paired by record, then the leaders play a knockout for the title. Everybody gets the same number of matches before anyone is eliminated.",
+  "signature": "closest record → knockout · top eight",
+  "config": {
+    "pairing": {
+      "strategy": "closest_record"
+    },
+    "standings": {
+      "pointsSystem": {
+        "win": 1,
+        "draw": 0.5,
+        "loss": 0,
+        "bye": 1
+      },
+      "tiebreakers": [
+        {
+          "key": "points"
+        },
+        {
+          "key": "buchholz"
+        },
+        {
+          "key": "drawn_lot"
+        }
+      ]
+    },
+    "stages": [
+      {
+        "kind": "swiss",
+        "id": "rounds",
+        "name": "Rounds",
+        "qualification": {
+          "count": 8
+        }
+      },
+      {
+        "kind": "single_elimination",
+        "id": "cut",
+        "name": "Top cut"
+      }
+    ],
+    "entrantFields": [
+      {
+        "key": "affiliation",
+        "label": "Club or team"
+      }
+    ]
+  }
+}

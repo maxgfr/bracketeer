@@ -76,7 +76,7 @@ describe("creating a tournament", () => {
     goTo("#/new");
     render(<App />);
 
-    await user.type(screen.getByPlaceholderText(/concours en poules/i), "Spring Open");
+    await user.type(screen.getByPlaceholderText(/straight knockout/i), "Spring Open");
     await user.type(
       screen.getByPlaceholderText(/Marie Dubois/),
       "Marie\nLuc\nAna\nPaul",
@@ -89,13 +89,14 @@ describe("creating a tournament", () => {
     expect(screen.getByText(/4 entrants/)).toBeInTheDocument();
   });
 
-  it("offers compositions rather than sports", () => {
+  it("offers shapes rather than sports", () => {
     goTo("#/new");
     render(<App />);
 
-    // Each starting point states the choices that make it what it is.
-    expect(screen.getByText(/poules of four → knockout · consolante/)).toBeInTheDocument();
-    expect(screen.getByText(/two legs · home and away · 3-1-0/)).toBeInTheDocument();
+    // Named for what they do, and grouped by the question being asked.
+    expect(screen.getByText("Losing matters")).toBeInTheDocument();
+    expect(screen.getByText("Everybody keeps playing")).toBeInTheDocument();
+    expect(screen.getByText(/round robin · two legs/)).toBeInTheDocument();
   });
 });
 

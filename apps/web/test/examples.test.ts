@@ -7,7 +7,7 @@
  * repository, editable by anyone, rather than only as a TypeScript constant.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -45,7 +45,7 @@ function resultFor(state: TournamentState, match: Match): MatchResult {
   }
 }
 import { describe, expect, it } from "vitest";
-import { EXAMPLES } from "../src/lib/examples.js";
+import { CATEGORIES, EXAMPLES } from "../src/lib/examples.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../examples");
 
@@ -66,9 +66,47 @@ describe("worked examples", () => {
     expect(kinds).toContain("groups");
   });
 
-  it("covers every way of scoring", () => {
+  it("covers every way of scoring the engine supports", () => {
     const kinds = new Set(EXAMPLES.map((e) => parseConfig(e.config).score.kind));
-    expect(kinds).toEqual(new Set(["points", "sets", "outcome", "placement"]));
+    expect(kinds).toEqual(new Set(["points", "sets", "outcome", "placement", "time"]));
+  });
+
+  it("is named for mechanisms, never for sports", () => {
+    /**
+     * The whole premise is that the engine knows nothing about any sport. A
+     * starting point named after one would tell everybody playing something
+     * else that the app is not for them, and would hide that their event and
+     * that one are the same structure with two settings changed.
+     */
+    const sports = [
+      "petanque", "pétanque", "boules", "football", "soccer", "chess", "tennis",
+      "padel", "esports", "basketball", "cricket", "curling", "bowling", "darts",
+      "volleyball", "rugby", "hockey", "golf", "badminton", "squash", "kart",
+      "mario", "backgammon", "scrabble", "poker", "go",
+    ];
+
+    for (const example of EXAMPLES) {
+      const haystack = `${example.name} ${example.signature}`.toLowerCase();
+      for (const sport of sports) {
+        expect(
+          new RegExp(`\\b${sport}\\b`).test(haystack),
+          `"${example.name}" is named after a sport`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("groups the shapes by the question an organiser is asking", () => {
+    for (const example of EXAMPLES) {
+      expect(
+        CATEGORIES.some((c) => c.id === example.category),
+        `${example.id} has no category`,
+      ).toBe(true);
+    }
+    // Every category earns its place by holding something.
+    for (const category of CATEGORIES) {
+      expect(EXAMPLES.some((e) => e.category === category.id), `${category.id} is empty`).toBe(true);
+    }
   });
 
   it("reaches four different pairing strategies", () => {
@@ -76,8 +114,15 @@ describe("worked examples", () => {
     expect(strategies.size).toBeGreaterThanOrEqual(3);
   });
 
-  it("writes each example out as data in examples/", () => {
+  it("writes each example out as data in examples/, and only those", () => {
     mkdirSync(root, { recursive: true });
+
+    // Remove files for shapes that no longer exist, or renaming one leaves the
+    // old version behind for somebody to find and use.
+    const expected = new Set(EXAMPLES.map((e) => `${e.id}.json`));
+    for (const file of readdirSync(root)) {
+      if (file.endsWith(".json") && !expected.has(file)) rmSync(resolve(root, file));
+    }
 
     for (const example of EXAMPLES) {
       const file = {
@@ -90,7 +135,7 @@ describe("worked examples", () => {
       writeFileSync(resolve(root, `${example.id}.json`), `${JSON.stringify(file, null, 2)}\n`);
     }
 
-    expect(EXAMPLES.length).toBeGreaterThan(5);
+    expect(readdirSync(root).filter((f) => f.endsWith(".json"))).toHaveLength(EXAMPLES.length);
   });
 });
 
@@ -112,7 +157,7 @@ describe("what an example claims, it configures", () => {
     "%s does not promise a consolation bracket it lacks",
     (_id, example) => {
       const text = `${example.name} ${example.summary} ${example.signature}`.toLowerCase();
-      const claims = /consolante|consolation/.test(text);
+      const claims = /consolation|second draw/.test(text);
 
       // A third-place play-off is not a consolation bracket: it is one fixture
       // between the beaten semi-finalists, not a second tournament.
@@ -234,6 +279,11 @@ describe("every example plays to the end", () => {
 
   it.each(EXAMPLES.map((e) => [e.id, e] as const))("%s finishes", (_id, example) => {
     const config = parseConfig(example.config);
+
+    // A ladder is an ongoing order, not an event: it has no fixtures until
+    // somebody issues a challenge, and no end to reach.
+    if (config.stages.every((s) => s.kind === "ladder")) return;
+
     // Sixteen is enough for four poules of four, and a power of two for brackets.
     const state = play(example.config, 16);
 
@@ -246,20 +296,20 @@ describe("every example plays to the end", () => {
     }
   });
 
-  it("the pétanque concours runs poules, a knockout and a consolante", () => {
-    const example = EXAMPLES.find((e) => e.id === "petanque-concours");
+  it("the pools shape runs pools, a knockout and a second draw", () => {
+    const example = EXAMPLES.find((e) => e.id === "pools-then-knockout");
     const state = play(example!.config, 16);
 
-    const poules = state.stages.find((s) => s.id === "poules");
-    expect(poules?.groups).toHaveLength(4);
-    expect(poules?.groups.every((g) => g.entrantIds.length === 4)).toBe(true);
+    const pools = state.stages.find((s) => s.id === "pools");
+    expect(pools?.groups).toHaveLength(4);
+    expect(pools?.groups.every((g) => g.entrantIds.length === 4)).toBe(true);
 
-    // A poule of four is five fixtures: two openers, winners, losers, barrage.
-    const perPoule = state.matches.filter((m) => m.groupId === poules?.groups[0]?.id);
-    expect(perPoule).toHaveLength(5);
+    // A pool of four is five fixtures: two openers, winners, losers, decider.
+    const perPool = state.matches.filter((m) => m.groupId === pools?.groups[0]?.id);
+    expect(perPool).toHaveLength(5);
 
-    // Two out of each poule, so eight play the knockout.
-    expect(state.stages.find((s) => s.id === "principal")?.entrantIds).toHaveLength(8);
+    // Two out of each pool, so eight play the knockout.
+    expect(state.stages.find((s) => s.id === "main-draw")?.entrantIds).toHaveLength(8);
 
     // And everyone beaten in its first round gets the consolante.
     expect(state.matches.some((m) => m.bracket === "consolation")).toBe(true);

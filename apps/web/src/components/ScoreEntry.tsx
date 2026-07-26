@@ -6,8 +6,8 @@
  * no button to hunt for. Type two numbers, press enter, the round moves on.
  *
  * The shape of the form follows the configured score kind, which is why one
- * component serves pétanque, tennis, a race and a chess game without knowing
- * what any of them are.
+ * component serves a counted score, a set of sets, a race and a bare verdict
+ * without knowing what any of them are.
  */
 
 import type { Match, MatchResult, ScoreConfig, TournamentState } from "@bracketeer/engine";

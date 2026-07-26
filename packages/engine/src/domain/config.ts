@@ -2,9 +2,9 @@
  * The configuration contract.
  *
  * A tournament is described by six orthogonal axes. There is deliberately no
- * "sport" concept anywhere: pétanque, chess, a football league and a Mario Kart
- * night are all points in this space, reached by composition rather than by a
- * special case in the engine.
+ * "sport" concept anywhere: a knockout, a league, a rated championship and a
+ * social games night are all points in this space, reached by composition
+ * rather than by a special case in the engine.
  *
  *   1. entrant + match shape   who plays, and how many sides meet in one match
  *   2. score                   how a result is expressed
@@ -36,8 +36,8 @@ export const entrantConfigSchema = z
       teamSize: z.number().int().min(1).nullable().default(null),
     }),
     /**
-     * Teams recomposed from a pool of players. This is the pétanque *mêlée* and
-     * the padel *americano*: you enter alone and your partners change.
+     * Teams recomposed from a pool of players: you enter alone and play with
+     * somebody different every round, so the table ranks people, not pairs.
      */
     z.object({
       kind: z.literal("drawn_team"),
@@ -67,8 +67,8 @@ export const matchShapeSchema = z
 export const scoreConfigSchema = z
   .discriminatedUnion("kind", [
     /**
-     * A raw number per side. Covers pétanque (first to 13), football goals,
-     * basketball, darts — anything counted.
+     * A raw number per side, whether it is first to a target or open-ended.
+     * Anything counted.
      */
     z.object({
       kind: z.literal("points"),
@@ -82,27 +82,24 @@ export const scoreConfigSchema = z
       /** Reject non-integer scores. */
       integerOnly: z.boolean().default(true),
     }),
-    /** Sets, games or legs: tennis, volleyball, table tennis, most esports. */
+    /** Decided by sets, games or legs rather than one running score. */
     z.object({
       kind: z.literal("sets"),
       bestOf: z.number().int().min(1).default(3),
       /** Points needed to take a set. null when only the set winner is recorded. */
       setTarget: z.number().int().positive().nullable().default(null),
-      /** Must win a set by this margin (2 for tennis and volleyball). */
+      /** Must win a set by this margin. */
       setWinBy: z.number().int().min(1).default(1),
-      /** A different target for the deciding set, e.g. a 10-point tiebreak. */
+      /** A different target for the deciding set, such as a short tiebreak. */
       decidingSetTarget: z.number().int().positive().nullable().default(null),
       allowDraw: z.boolean().default(false),
     }),
-    /** Only the verdict matters. Chess without recorded scores, or any binary sport. */
+    /** Only the verdict matters: won, lost, drawn, with no score recorded. */
     z.object({
       kind: z.literal("outcome"),
       allowDraw: z.boolean().default(true),
     }),
-    /**
-     * An ordered finish across 3+ sides: racing, battle royale, a Mario Kart
-     * cup, a shooting heat.
-     */
+    /** An ordered finish across three or more sides at once. */
     z.object({
       kind: z.literal("placement"),
       /** Points awarded by finishing position, best first. Falls back to reverse order. */
@@ -125,7 +122,7 @@ export const scoreConfigSchema = z
 
 /**
  * Bonus points, expressed against signals every score kind can produce, so the
- * rule works whatever the sport. A rugby losing bonus is `loss_margin_at_most: 7`.
+ * rule works whatever the game. A losing bonus is `loss_margin_at_most: 7`.
  */
 export const bonusRuleSchema = z.object({
   id: z.string(),
@@ -145,12 +142,12 @@ export const pointsSystemSchema = z
     win: z.number().default(1),
     draw: z.number().default(0.5),
     loss: z.number().default(0),
-    /** A round off counts as this. Chess and Swiss pétanque usually award a full win. */
+    /** A round off counts as this. Most record-paired formats award a full win. */
     bye: z.number().default(1),
     forfeitWin: z.number().default(1),
     forfeitLoss: z.number().default(0),
     /**
-     * Results settled after regulation. Ice hockey's 3-2-1-0 is
+     * Results settled after regulation. A 3-2-1-0 system is
      * win 3 / otWin 2 / otLoss 1 / loss 0.
      */
     overtimeWin: z.number().nullable().default(null),
@@ -194,14 +191,14 @@ export const standingsConfigSchema = z
      *
      * "outcome" awards them by result, through the points system below: a win is
      * worth 3, a draw 1. "score" counts what you actually scored, which is how a
-     * Mario Kart cup or an athletics meeting works — finishing fourth in a field
+     * heats night or an athletics meeting works — finishing fourth in a field
      * of twelve is still worth something.
      */
     pointsSource: z.enum(["outcome", "score"]).default("outcome"),
     /**
      * Points an entrant starts the event on, before playing anybody.
      *
-     * This is the McMahon system, standard in European Go: strong players begin
+     * This is the McMahon system: strong entrants begin
      * on a higher score so they meet each other immediately, and — unlike
      * accelerated pairings, where the boost is taken away again — the head start
      * counts right through to the final table. It lets one event serve a field
@@ -215,7 +212,7 @@ export const standingsConfigSchema = z
         bandSize: z.number().positive().default(100),
         /** The most a starting score can be, however strong the entrant. */
         maxBonus: z.number().min(0).default(3),
-        /** Ratings at or below this start on zero. Go calls this the bar. */
+        /** Ratings at or below this start on zero. Often called the bar. */
         floor: z.number().nullable().default(null),
       })
       .default({}),
@@ -291,7 +288,7 @@ export const pairingConfigSchema = z
     strategy: pairingStrategySchema.default("seeded"),
     constraints: pairingConstraintsSchema,
     /**
-     * Who receives the bye when the field is odd. "lowest_ranked" matches chess
+     * Who receives the bye when the field is odd. "lowest_ranked" is the usual
      * convention; "highest_ranked" suits formats that reward the leader.
      */
     byePolicy: z.enum(["lowest_ranked", "highest_ranked", "random"]).default("lowest_ranked"),
@@ -319,9 +316,9 @@ export const seedingSchema = z
 /**
  * What happens to a competitor who loses.
  *
- * `full_consolation` is the pétanque *consolante* and answers the case of being
- * knocked out in round one by the eventual winner: losers drop into a second
- * bracket and keep playing.
+ * `full_consolation` answers the case of being knocked out in round one by the
+ * eventual winner: losers drop into a second bracket and keep playing. Some
+ * competitions call it the consolante or the plate.
  */
 export const consolationSchema = z
   .enum(["none", "third_place", "full_consolation", "repechage"])
@@ -367,9 +364,9 @@ const doubleEliminationSchema = z.object({
   /**
    * Whether the two survivors meet at all.
    *
-   * Off, this becomes a *poule*: the pétanque group of four where winners play
-   * winners, losers play losers, and the barrage decides the second qualifier.
-   * Both survivors go through, so there is nothing left for a final to settle.
+   * Off, this becomes a pool: winners play winners, losers play losers, and one
+   * decider settles the second qualifier. Both survivors go through, so there
+   * is nothing left for a final to settle.
    */
   playGrandFinal: z.boolean().default(true),
   consolation: consolationSchema,
@@ -418,9 +415,8 @@ const ladderSchema = z.object({
 
 /**
  * A stepladder: the lowest qualifier plays the next lowest, and the winner keeps
- * climbing until somebody beats the top seed. Bowling finals and several esports
- * qualifiers work this way — it rewards finishing top far more heavily than a
- * bracket does, because the leader only has to win once.
+ * climbing until somebody beats the top seed. It rewards finishing top far more
+ * heavily than a bracket does, because the leader only has to win once.
  */
 const stepladderSchema = z.object({
   ...stageCommon,
@@ -430,11 +426,10 @@ const stepladderSchema = z.object({
 });
 
 /**
- * The Page playoff: a four-entrant finish used in curling, softball and several
- * cricket competitions. First plays second for a place in the final; third plays
- * fourth to survive; the loser of the first meets the winner of the second. It
- * gives the top two a second chance without the length of a full double
- * elimination.
+ * The Page playoff: a four-entrant finish. First plays second for a place in the
+ * final; third plays fourth to survive; the loser of the first meets the winner
+ * of the second. It gives the top two a second chance without the length of a
+ * full double elimination.
  */
 const pagePlayoffSchema = z.object({
   ...stageCommon,
@@ -525,7 +520,7 @@ export const ratingConfigSchema = z
 export const venueSchema = z.object({
   id: z.string(),
   name: z.string(),
-  /** Matches this venue can host at the same time. A pétanque piste hosts one. */
+  /** Matches this venue can host at the same time. One court hosts one. */
   capacity: z.number().int().min(1).default(1),
 });
 

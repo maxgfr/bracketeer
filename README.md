@@ -11,7 +11,7 @@ No account. No server. No database. You create a tournament, run it, and share a
 ## Why another bracket tool
 
 Most tournament software is written for one sport and then bent into shape for the others.
-Bracketeer is built the other way round: there is no `if (sport === 'petanque')` anywhere in the
+Bracketeer is built the other way round: there is no `if (sport === …)` anywhere in the
 engine. There are six independent axes, and a sport is just a point in that space.
 
 | Axis | What it decides | Options |
@@ -24,27 +24,22 @@ engine. There are six independent axes, and a sport is just a point in that spac
 | **Pairing** | who plays whom | `seeded` · `random` · `closest_record` · `closest_rating` · `rating_spread` · `berger` |
 | **Tiebreakers** | who ranks above whom | an ordered, reorderable list you control |
 
-Compose them and real formats fall out, without writing code. Every one of these ships as a file
-in [`examples/`](examples):
+Compose them and real structures fall out, without writing code. The app offers them as **shapes**,
+grouped by the question you are actually asking — never as a list of sports. A list of sports tells
+everybody whose game is missing that this is not for them, and hides the fact that two events which
+look nothing alike are usually the same structure with a couple of settings changed.
 
-- **Pétanque concours** — the usual French shape: doublettes drawn into *poules* of four
-  (`groups` running a `double_elimination` with no final, so both survivors go through), then an
-  élimination directe with a `full_consolation` *consolante* for everyone beaten in round one.
-- **Pétanque au système suisse** — the other way clubs run an evening: nobody eliminated,
-  `closest_record` pairing, tiebroken by `[wins, buchholz, point_diff]`, so two players on the same
-  record are separated by how hard their draw was.
-- **Chess Swiss** — `outcome` scoring with draws, half a point each, Sonneborn-Berger, Glicko-2 for
-  players with few rated games.
-- **Football league** — `round_robin` over two legs with home and away, 3–1–0, separated by goal
-  difference, with fixtures on a calendar that exports to `.ics`.
-- **Esports** — `double_elimination`, best-of-three, and the unbeaten finalist must be beaten twice.
-- **Groups into a knockout** — four round-robin groups, top two advance.
-- **Free-for-all night** — four at a time, scored by finishing position, heats drawn between players
-  of similar ability.
-- **Padel americano** — you enter alone, your partner changes every round, and the table ranks
-  individuals.
+| If you want… | Shapes |
+|---|---|
+| **Losing to matter** — short, decisive | straight knockout · knockout with a second draw · two lives · best of three · climb to the top seed · four-way finish |
+| **Everybody to keep playing** — same number of matches each | everyone plays everyone · a season home and away · paired by record · paired by record, wide field |
+| **A few matches, then a decision** | groups then a knockout · pools then a knockout with a second draw · rounds then a top cut |
+| **More than two at a time** | heats of four · against the clock · rotating partners |
+| **No end date** | challenge ladder |
 
-Change three settings and the pétanque concours becomes the chess Swiss. That is the whole idea.
+Every one of them ships as a file in [`examples/`](examples), and every one is a point in the same
+configuration space. Change the score kind and the tiebreak order on "paired by record" and you have
+turned a games night into a rated championship. Nothing in the engine noticed.
 
 ## Sharing without a server
 
@@ -77,7 +72,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 221 engine tests + 94 app tests
+pnpm test         # 221 engine tests + 159 app tests
 pnpm typecheck
 pnpm build
 ```

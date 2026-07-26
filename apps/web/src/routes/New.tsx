@@ -12,13 +12,13 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
-import { EXAMPLES } from "../lib/examples.js";
+import { CATEGORIES, examplesIn, EXAMPLES } from "../lib/examples.js";
 import { actorId, randomId, randomSeed, saveLog } from "../lib/storage.js";
 
 export function NewTournament() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [exampleId, setExampleId] = useState("petanque-concours");
+  const [exampleId, setExampleId] = useState("knockout");
   const [roster, setRoster] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -108,52 +108,77 @@ export function NewTournament() {
           </div>
         </Section>
 
-        <Section label="Starting point" meta="Every rule can be changed afterwards">
+        <Section label="Shape" meta="Every rule can be changed afterwards">
           <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-            These are not modes. Each one is a set of choices across the same six dials, and the
-            config editor will show you exactly which. Pick whichever is closest and adjust.
+            These are shapes, not sports. Nothing here knows what you play — two events that look
+            nothing alike are usually the same shape with a couple of settings changed, and those
+            settings are all on the Rules tab. Pick whichever shape is closest.
           </p>
-          <div role="radiogroup" aria-label="Starting point">
-            {EXAMPLES.map((option) => {
-              const selected = option.id === exampleId;
+
+          <div role="radiogroup" aria-label="Shape">
+            {CATEGORIES.map((category) => {
+              const options = examplesIn(category.id);
+              if (options.length === 0) return null;
+
               return (
-                <label
-                  key={option.id}
-                  className={`border-rule flex cursor-pointer items-start gap-3 border-b py-3 transition-colors ${
-                    selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
-                  } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
-                >
-                  {/*
-                    The native control is hidden but still focusable, so the row
-                    carries the focus ring on its behalf — otherwise keyboard
-                    users would be moving through an invisible selection.
-                  */}
-                  <input
-                    type="radio"
-                    name="example"
-                    value={option.id}
-                    checked={selected}
-                    onChange={() => setExampleId(option.id)}
-                    className="sr-only"
-                  />
-                  <span
-                    aria-hidden
-                    className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
-                      selected ? "bg-signal" : "border-rule-strong border opacity-40"
-                    }`}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className={`text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}>
-                        {option.name}
-                      </span>
-                      <Label>{option.signature}</Label>
-                    </span>
-                    <span className="text-ink-2 mt-1 block max-w-[64ch] text-sm leading-snug">
-                      {option.summary}
-                    </span>
-                  </span>
-                </label>
+                <div key={category.id} className="mt-6 first:mt-0">
+                  <h3 className="sheet-label text-ink">{category.title}</h3>
+                  <p className="text-ink-2 mt-1 max-w-[68ch] text-sm leading-snug">
+                    {category.blurb}
+                  </p>
+
+                  <div className="mt-2">
+                    {options.map((option) => {
+                      const selected = option.id === exampleId;
+                      return (
+                        <label
+                          key={option.id}
+                          className={`border-rule flex cursor-pointer items-start gap-3 border-b py-3 transition-colors ${
+                            selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
+                          } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
+                        >
+                          {/*
+                            The native control is hidden but still focusable, so
+                            the row carries the focus ring on its behalf —
+                            otherwise keyboard users would be moving through an
+                            invisible selection.
+                          */}
+                          <input
+                            type="radio"
+                            name="example"
+                            value={option.id}
+                            checked={selected}
+                            onChange={() => setExampleId(option.id)}
+                            className="sr-only"
+                          />
+                          <span
+                            aria-hidden
+                            className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
+                              selected ? "bg-signal" : "border-rule-strong border opacity-40"
+                            }`}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                              <span
+                                className={`text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}
+                              >
+                                {option.name}
+                              </span>
+                              <Label>{option.signature}</Label>
+                            </span>
+                            <span className="text-ink-2 mt-1 block max-w-[64ch] text-sm leading-snug">
+                              {option.summary}
+                            </span>
+                            {/* How much of everyone's day this costs. */}
+                            <span className="text-ink-3 mt-1 block text-xs">
+                              Matches each: {option.games}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>
