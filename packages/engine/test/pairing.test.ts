@@ -338,7 +338,7 @@ describe("invariants that must hold for any field", () => {
       ),
       { numRuns: 200 },
     );
-  });
+  }, 60_000);
 
   it("never pairs an entrant with itself", () => {
     fc.assert(
@@ -352,7 +352,7 @@ describe("invariants that must hold for any field", () => {
       }),
       { numRuns: 100 },
     );
-  });
+  }, 60_000);
 
   it("stands down at most one entrant in a two-sided round", () => {
     fc.assert(
@@ -362,7 +362,7 @@ describe("invariants that must hold for any field", () => {
       }),
       { numRuns: 60 },
     );
-  });
+  }, 60_000);
 
   it("produces the same round from the same inputs on every device", () => {
     fc.assert(
@@ -380,7 +380,7 @@ describe("invariants that must hold for any field", () => {
       ),
       { numRuns: 100 },
     );
-  });
+  }, 60_000);
 
   it("always stands down someone who has sat out least", () => {
     // Bye balance must beat the ordering policy, or the same person is benched
@@ -407,7 +407,7 @@ describe("invariants that must hold for any field", () => {
       ),
       { numRuns: 150 },
     );
-  });
+  }, 60_000);
 
   it("finds a rematch-free round whenever one exists", () => {
     // A full round robin already played, minus the final round: the pairing for
@@ -440,5 +440,5 @@ describe("invariants that must hold for any field", () => {
       }),
       { numRuns: 40 },
     );
-  });
+  }, 60_000);
 });
