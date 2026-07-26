@@ -64,6 +64,8 @@ qualifiers to the next.
 | `swiss` | `rounds` (`null` derives `ceil(log2(n))`) |
 | `groups` | `groupCount`, `groupSize`, `distribution`, and an `inner` stage each group plays |
 | `ladder` | `challengeRange`, `takeRungOnWin` |
+| `stepladder` | `rungs` — the lowest qualifier climbs one rung at a time |
+| `page_playoff` | The four-entrant curling finish; top two get a second chance |
 
 ```jsonc
 {
@@ -80,7 +82,13 @@ qualifiers to the next.
 table, and `bestOfRest` to top up with the best runners-up across groups.
 
 `seeding.method` is `standard` (the classic fold that keeps the top seeds apart),
-`ordered`, `random`, or `manual` with an explicit `slots` array.
+`ordered`, `random`, `by_rating`, or `manual` with an explicit `slots` array.
+
+Swiss stages also take `accelerated: { rounds, bonus }`. For the first few rounds
+the stronger half of the field carries virtual points, so top entrants meet each
+other straight away instead of spending three rounds beating the bottom of the
+draw. The bonus shapes the draw only and never reaches the table — that is the
+whole difference from the starting scores below.
 
 ## 4. If you lose — `consolation`
 
@@ -152,6 +160,15 @@ means the same thing whether the sport scores 3-1-0 or 1-0.5-0.
 
 `pointsSource` is `outcome` (a win is worth a fixed amount) or `score` (what you
 actually scored counts directly — a Mario Kart cup, an athletics meeting).
+
+`initialScore` is the **McMahon system**, standard in European Go: entrants begin
+on a score derived from their rating, so a field spanning a huge range of
+strength meets its own level from round one. Unlike accelerated pairings, the
+head start counts right through to the final table.
+
+```jsonc
+{ "initialScore": { "source": "rating_band", "bandSize": 100, "maxBonus": 3, "floor": 1200 } }
+```
 
 | Tiebreaker | Measures |
 |---|---|
@@ -234,6 +251,24 @@ These appear against every entrant, show in the table, and can be referenced by
 `pairing.constraints.avoidSameMeta.field`.
 
 ---
+
+## Formats that need no new structure
+
+Several named systems are reachable by composing what is already here, and there
+are tests asserting it in `packages/engine/test/formats-extra.test.ts`:
+
+| System | Composition |
+|---|---|
+| **Monrad** | Swiss with `seeding.method: "random"` |
+| **Danish** | Monrad with `avoidRematch.enabled: false` |
+| **Pool play** | `groups` whose `inner` is `double_elimination` |
+| **Top cut** | `qualification.count` feeding the next stage |
+| **King of the hill** | `ladder` |
+| **Consolante / second chance** | `consolation: "full_consolation"` |
+
+**Not implemented:** the compass draw, the eight-bracket format some tennis and
+pickleball clubs use. It is the one named format from a survey of the field that
+this model does not currently reach.
 
 ## Worked examples
 

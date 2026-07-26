@@ -19,7 +19,7 @@ engine. There are six independent axes, and a sport is just a point in that spac
 | **Entrant** | who plays | `individual` · `fixed_team` · `drawn_team` (partners redrawn each round) |
 | **Match shape** | how many meet at once | 2 for head-to-head, 3+ for a free-for-all |
 | **Score** | how a result is expressed | `points` · `sets` · `outcome` · `placement` · `time` |
-| **Structure** | the shape of the event | `single_elimination` · `double_elimination` · `swiss` · `round_robin` · `groups` · `ladder` |
+| **Structure** | the shape of the event | `single_elimination` · `double_elimination` · `swiss` · `round_robin` · `groups` · `ladder` · `stepladder` · `page_playoff` |
 | **Consolation** | what happens to losers | `none` · `third_place` · `full_consolation` · `repechage` |
 | **Pairing** | who plays whom | `seeded` · `random` · `closest_record` · `closest_rating` · `rating_spread` · `berger` |
 | **Tiebreakers** | who ranks above whom | an ordered, reorderable list you control |
@@ -73,7 +73,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 164 engine tests + 28 app tests
+pnpm test         # 225 engine tests + 33 app tests
 pnpm typecheck
 pnpm build
 ```

@@ -120,6 +120,9 @@ components and catch the wiring that engine unit tests cannot.
 - **The TrueSkill implementation is the two-player update generalised to adjacent
   finishing positions**, not the full factor graph. It orders a field correctly;
   it does not model it exactly. That is stated in the source rather than implied.
+- **The compass draw is not implemented.** Of the named formats a survey of the
+  field turned up, it is the only one this model does not reach; everything else
+  either exists or composes.
 - **`localStorage` is the only local persistence**, so a cleared browser loses
   what has not been exported. The app warns when the browser refuses to save.
 
