@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Route, Routes, useLocation, useParams } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Notice } from "../components/Sheet.js";
-import { decode } from "../lib/codec.js";
+import { decode, encode } from "../lib/codec.js";
 import { STAGE_LABELS } from "../lib/format.js";
 import { useTournament } from "../lib/useTournament.js";
 import { PeerBar, usePeers, type PeerState } from "../sync/PeerBar.js";
@@ -100,7 +100,7 @@ export function TournamentRoute() {
           <Notice tone="warn">
             {linkFailed
               ? "This link could not be read. It may have been truncated in transit — ask whoever sent it to share it again, or to send you the exported file instead."
-              : "No tournament with that address is stored on this device. If somebody shared a link with you, open the full link rather than this address."}
+              : "This address alone carries no tournament, and there is no copy of it on this device. A Bracketeer link holds the whole event inside it, so it is long — if somebody copied it out of their browser bar rather than using the Copy link button, ask them for the full one."}
           </Notice>
         </div>
       ) : (
@@ -230,6 +230,7 @@ function ControlStrip({
       ) : null}
       {action.note ? <span className="text-ink-2 text-sm">{action.note}</span> : null}
       <div className="ml-auto flex items-center gap-1">
+        <ShareLinkButton store={store} peers={peers} />
         <Button
           variant="quiet"
           onClick={peers.status === "off" || peers.status === "unavailable" ? peers.start : peers.stop}
@@ -246,6 +247,41 @@ function ControlStrip({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The link, one tap from anywhere.
+ *
+ * The address bar reads `#/t/abc123` and carries no tournament at all, so
+ * copying it — the obvious thing to do — sends somebody an address that means
+ * nothing on their device. The real link is long and lives on the Share tab,
+ * which is no use at the moment you are actually sharing.
+ */
+function ShareLinkButton({ store, peers }: { store: Store; peers: PeerState }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    const encoded = encode(store.log);
+    const origin = `${window.location.origin}${window.location.pathname}`;
+    const live = peers.status === "live" ? "&live=1" : "";
+    try {
+      await navigator.clipboard.writeText(`${origin}#/t/${store.id}?d=${encoded}${live}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="quiet"
+      onClick={() => void copy()}
+      title="Copy the link that carries this tournament — the address bar does not"
+    >
+      {copied ? "Link copied" : "Copy link"}
+    </Button>
   );
 }
 
@@ -274,10 +310,10 @@ function LiveBanner({ peers, invited }: { peers: PeerState; invited: boolean }) 
 
   if (peers.status === "live" && peers.count === 0) {
     return (
-      <div className="no-print border-rule mt-4 border-b px-3 py-2.5">
-        <span className="text-ink-2 text-sm">
-          Live, but nobody else has joined yet. Send the share link — it now carries the
-          invitation, and the other device gets a single tap to join.
+      <div className="no-print border-rule mt-4 flex flex-wrap items-center gap-3 border-b px-3 py-2.5">
+        <span className="text-ink-2 flex-1 text-sm">
+          Live, but nobody else has joined yet. Use <strong className="font-medium">Copy link</strong>{" "}
+          — the address in your browser bar carries no tournament, so sending that gets you nowhere.
         </span>
       </div>
     );

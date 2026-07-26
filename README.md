@@ -39,7 +39,12 @@ look nothing alike are usually the same structure with a couple of settings chan
 
 The app draws each one, and the drawing is traced from a tournament the engine actually plays — so
 a diagram cannot describe a structure the rules do not produce. Every shape ships as a file in
-[`examples/`](examples), and every one is a point in the same configuration space. Change the score kind and the tiebreak order on "paired by record" and you have
+[`examples/`](examples), and every one is a point in the same configuration space.
+
+There is also a list of **sports** — rugby, pétanque, volleyball, a fighting game, a battle royale,
+and a dozen more. They are not modes: each one is a shape from the list above with the scoring and
+tiebreaks already filled in, and each says which shape it is, because typing a points system in from
+memory is a chore and the software still does not know what a scrum is. Change the score kind and the tiebreak order on "paired by record" and you have
 turned a games night into a rated championship. Nothing in the engine noticed.
 
 ## Sharing without a server
@@ -73,7 +78,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 226 engine tests + 276 app tests
+pnpm test         # 226 engine tests + 388 app tests
 pnpm typecheck
 pnpm build
 ```

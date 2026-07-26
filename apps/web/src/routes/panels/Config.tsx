@@ -27,6 +27,7 @@ import {
   Section,
   Select,
 } from "../../components/Sheet.js";
+import { ShapeDiagram } from "../../components/ShapeDiagram.js";
 import { STAGE_LABELS, TIEBREAKER_TITLES } from "../../lib/format.js";
 import type { Store } from "../Tournament.js";
 
@@ -513,6 +514,15 @@ export function ConfigPanel({ store }: { store: Store }) {
       </Section>
 
       <Section label="Structure" meta={config.stages.map((s) => STAGE_LABELS[s.kind]).join(" → ")}>
+        {/*
+          What the rules above actually build. Traced from a sample tournament
+          the engine plays, so changing a setting changes the picture — and a
+          setting that does nothing is visibly doing nothing.
+        */}
+        <div className="border-rule bg-paper-raised mt-4 border px-3 py-2">
+          <ShapeDiagram config={config} />
+        </div>
+
         <ol className="py-3">
           {config.stages.map((stage, index) => (
             <li key={stage.id} className="border-rule border-b py-3">

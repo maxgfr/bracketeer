@@ -279,8 +279,10 @@ describe("sharing", () => {
     const link = screen.getByLabelText(/share this/i) as HTMLInputElement;
     expect(link.value).toContain("#/t/demo?d=");
 
-    await user.click(screen.getByRole("button", { name: /copy link/i }));
-    // The button confirming it is the part the organiser relies on.
+    // The control strip has one too, now that copying the address bar is the
+    // mistake this exists to prevent.
+    const buttons = screen.getAllByRole("button", { name: /copy link/i });
+    await user.click(buttons[buttons.length - 1]!);
     await waitFor(() => expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument());
   });
 
@@ -969,5 +971,102 @@ describe("what sharing a link actually grants", () => {
     open({ score: { kind: "points" } }, four, "share");
     expect(screen.getByText(/can enter scores, not just read them/i)).toBeInTheDocument();
     expect(screen.getByText(/no separate spectator mode/i)).toBeInTheDocument();
+  });
+});
+
+describe("naming a tournament at creation", () => {
+  it("suggests a name, year-stamped, and a different one each press", async () => {
+    const user = userEvent.setup();
+    window.location.hash = "#/new";
+    render(<App />);
+
+    const field = screen.getByPlaceholderText(/straight knockout/i) as HTMLInputElement;
+    await user.click(screen.getByRole("button", { name: /suggest a name/i }));
+
+    const first = field.value;
+    expect(first).toContain(String(new Date().getFullYear()));
+
+    await user.click(screen.getByRole("button", { name: /suggest a name/i }));
+    expect(field.value).not.toBe(first);
+  });
+
+  it("numbers an unnamed tournament rather than repeating one already here", async () => {
+    const user = userEvent.setup();
+    window.location.hash = "#/new";
+    render(<App />);
+
+    // Leaving the name blank falls back to the shape's name, with a year on it.
+    await user.click(screen.getByRole("button", { name: "Create" }));
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+        new RegExp(String(new Date().getFullYear())),
+      ),
+    );
+  });
+});
+
+describe("starting from a sport", () => {
+  it("offers sports as a second list, each naming the shape it is", () => {
+    window.location.hash = "#/new";
+    render(<App />);
+
+    expect(screen.getByText(/or start from a sport/i)).toBeInTheDocument();
+    expect(screen.getByText("Rugby union")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Shape: /).length).toBeGreaterThan(10);
+  });
+
+  it("says plainly that a sport is a shape with the settings filled in", () => {
+    window.location.hash = "#/new";
+    render(<App />);
+    expect(screen.getByText(/none of these is a mode/i)).toBeInTheDocument();
+  });
+
+  it("creates a tournament with the sport's rules", async () => {
+    const user = userEvent.setup();
+    window.location.hash = "#/new";
+    render(<App />);
+
+    await user.click(screen.getByText("Rugby union"));
+    fireEvent.change(screen.getByPlaceholderText(/Marie Dubois/), {
+      target: { value: "Ana\nBen\nCleo\nDan" },
+    });
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Rugby union/),
+    );
+    // Two legs of a round robin: everyone meets everyone twice.
+    expect(screen.getByText(/round robin/i)).toBeInTheDocument();
+  });
+});
+
+describe("seeing the structure while editing the rules", () => {
+  it("draws what the current configuration builds", async () => {
+    open({ score: { kind: "points" } }, four, "rules");
+
+    const drawings = await screen.findAllByRole("img");
+    expect(drawings.length).toBeGreaterThan(0);
+    expect(drawings[0]).toHaveAttribute("aria-label", expect.stringContaining("Structure"));
+  });
+});
+
+describe("getting the link at the moment you need it", () => {
+  it("offers Copy link from any tab, not only from Share", async () => {
+    const user = userEvent.setup();
+    open({ score: { kind: "points" } }, four, "standings");
+
+    const copy = screen.getAllByRole("button", { name: /copy link/i })[0]!;
+    await user.click(copy);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /link copied/i })).toBeInTheDocument(),
+    );
+  });
+
+  it("explains that a bare address carries no tournament", () => {
+    window.location.hash = "#/t/never-seen";
+    render(<App />);
+
+    expect(screen.getByText(/address alone carries no tournament/i)).toBeInTheDocument();
+    expect(screen.getByText(/rather than using the Copy link button/i)).toBeInTheDocument();
   });
 });

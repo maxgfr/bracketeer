@@ -343,6 +343,34 @@ export const EXAMPLES: Example[] = [
     },
   },
   {
+    id: "groups-then-two-lives",
+    category: "two-stage",
+    name: "Groups, then two lives",
+    summary:
+      "Groups first, then the ones who come through play a double elimination rather than a straight knockout — so nobody who survived the group stage goes out on a single bad match.",
+    signature: "groups → double elimination · top two advance",
+    games: "3 minimum, then two lives",
+    config: {
+      score: { kind: "points" },
+      standings: {
+        pointsSystem: { win: 1, draw: 0, loss: 0 },
+        tiebreakers: [{ key: "points" }, { key: "point_diff" }, { key: "drawn_lot" }],
+      },
+      stages: [
+        {
+          kind: "groups",
+          id: "groups",
+          name: "Groups",
+          groupSize: 4,
+          inner: { kind: "round_robin" },
+          qualification: { perGroup: 2 },
+        },
+        { kind: "double_elimination", id: "playoffs", name: "Playoffs" },
+      ],
+      entrantFields: AFFILIATION,
+    },
+  },
+  {
     id: "rounds-then-cut",
     category: "two-stage",
     name: "Rounds, then a top cut",

@@ -14,16 +14,30 @@ import { Masthead } from "../components/Masthead.js";
 import { ShapeDiagram } from "../components/ShapeDiagram.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
 import { CATEGORIES, examplesIn, EXAMPLES } from "../lib/examples.js";
-import { actorId, randomId, randomSeed, saveLog } from "../lib/storage.js";
+import { numberedName, suggestName } from "../lib/names.js";
+import { SPORTS } from "../lib/sports.js";
+import { actorId, listTournaments, randomId, randomSeed, saveLog } from "../lib/storage.js";
 
 export function NewTournament() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [exampleId, setExampleId] = useState("knockout");
+  const [choice, setChoice] = useState<{ from: "shape" | "sport"; id: string }>({
+    from: "shape",
+    id: "knockout",
+  });
   const [roster, setRoster] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const taken = useMemo(() => listTournaments().map((t) => t.name), []);
 
-  const example = useMemo(() => EXAMPLES.find((e) => e.id === exampleId), [exampleId]);
+  /** Whichever was picked, reduced to the two things creation needs. */
+  const chosen = useMemo(() => {
+    if (choice.from === "sport") {
+      const sport = SPORTS.find((s) => s.id === choice.id);
+      return sport ? { name: sport.name, config: sport.config } : null;
+    }
+    const shape = EXAMPLES.find((e) => e.id === choice.id);
+    return shape ? { name: shape.name, config: shape.config } : null;
+  }, [choice]);
 
   const entrants = useMemo(
     () =>
@@ -47,14 +61,14 @@ export function NewTournament() {
 
   const create = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!example) return;
+    if (!chosen) return;
 
-    const title = name.trim() || example.name;
+    const title = name.trim() || numberedName(chosen.name, taken);
 
     try {
       // Fail here rather than on the tournament page, where the error would have
       // no obvious cause.
-      parseConfig(example.config);
+      parseConfig(chosen.config);
     } catch {
       setError("That starting point could not be loaded. Please choose another.");
       return;
@@ -70,7 +84,7 @@ export function NewTournament() {
       actor,
       createTournament({
         name: title,
-        config: example.config,
+        config: chosen.config,
         seed: randomSeed(),
         createdAt: new Date(at).toISOString(),
       }),
@@ -101,11 +115,14 @@ export function NewTournament() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={example?.name ?? "Spring open"}
+                placeholder={chosen ? numberedName(chosen.name, taken) : "Spring Open"}
                 className={inputClass}
                 autoFocus
               />
             </Field>
+            <div className="flex items-end pb-1">
+              <Button onClick={() => setName(suggestName(name, taken))}>Suggest a name</Button>
+            </div>
           </div>
         </Section>
 
@@ -130,7 +147,7 @@ export function NewTournament() {
 
                   <div className="mt-2">
                     {options.map((option) => {
-                      const selected = option.id === exampleId;
+                      const selected = choice.from === "shape" && option.id === choice.id;
                       return (
                         <label
                           key={option.id}
@@ -149,7 +166,7 @@ export function NewTournament() {
                             name="example"
                             value={option.id}
                             checked={selected}
-                            onChange={() => setExampleId(option.id)}
+                            onChange={() => setChoice({ from: "shape", id: option.id })}
                             className="sr-only"
                           />
                           <span
@@ -196,6 +213,65 @@ export function NewTournament() {
               );
             })}
           </div>
+        </Section>
+
+        <Section label="Or start from a sport" meta={`${SPORTS.length} presets`}>
+          <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
+            None of these is a mode. Each one is a shape from above with the scoring and tiebreaks
+            already filled in, because typing a points system in from memory is a chore. Every one
+            says which shape it is, and every setting is editable afterwards — so a sport that is
+            missing from this list is a few settings away from one that is here.
+          </p>
+
+          <div className="grid gap-x-6 sm:grid-cols-2">
+            {SPORTS.map((sport) => {
+              const selected = choice.from === "sport" && sport.id === choice.id;
+              return (
+                <label
+                  key={sport.id}
+                  className={`border-rule flex cursor-pointer items-start gap-3 border-b py-2.5 transition-colors ${
+                    selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
+                  } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
+                >
+                  <input
+                    type="radio"
+                    name="example"
+                    value={sport.id}
+                    checked={selected}
+                    onChange={() => setChoice({ from: "sport", id: sport.id })}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
+                      selected ? "bg-signal" : "border-rule-strong border opacity-40"
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}
+                    >
+                      {sport.name}
+                    </span>
+                    <span className="text-ink-2 mt-0.5 block text-xs leading-snug">
+                      {sport.fills}
+                    </span>
+                    {/* The relationship stays visible: this *is* that shape. */}
+                    <span className="text-ink-3 mt-0.5 block text-xs">
+                      Shape: {sport.basedOn}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          {choice.from === "sport" && chosen ? (
+            <div className="border-rule bg-paper-raised mt-4 border px-3 py-2">
+              <Label>Structure</Label>
+              <ShapeDiagram config={chosen.config} />
+            </div>
+          ) : null}
         </Section>
 
         <Section
