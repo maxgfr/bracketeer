@@ -290,3 +290,93 @@ describe("entrants", () => {
     expect(screen.getByDisplayValue("Marie")).toBeInTheDocument();
   });
 });
+
+describe("form affordances", () => {
+  it("gives entrant names and seeds real, editable fields", async () => {
+    const user = userEvent.setup();
+    seedTournament(["Marie", "Luc"]);
+    goTo("#/t/demo/entrants");
+    render(<App />);
+
+    const name = screen.getByDisplayValue("Marie");
+    // A field somebody can see is a field, not text styled to look like one.
+    expect(name.tagName).toBe("INPUT");
+    expect(getComputedStyle(name).borderStyle).not.toBe("none");
+
+    await user.clear(name);
+    await user.type(name, "Marie Dubois");
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Marie Dubois")).toBeInTheDocument();
+    });
+
+    const seed = screen.getByLabelText("Seed for Luc");
+    expect(seed).toHaveAttribute("inputmode", "numeric");
+  });
+
+  it("draws a chevron on every select, since the native one is stripped", () => {
+    seedTournament(["Marie", "Luc"]);
+    goTo("#/t/demo/rules");
+    const { container } = render(<App />);
+
+    const selects = container.querySelectorAll("select");
+    expect(selects.length).toBeGreaterThan(3);
+    for (const select of selects) {
+      expect(select.parentElement?.querySelector("svg")).toBeTruthy();
+    }
+  });
+
+  it("reads the roster back as a seeded draw order, and flags a repeated name", async () => {
+    goTo("#/new");
+    render(<App />);
+
+    fireEvent.change(screen.getByPlaceholderText(/Marie Dubois/), {
+      target: { value: "Ana\nLuc\nAna" },
+    });
+
+    // The draw order is echoed back, so a stray blank line or a name pasted
+    // twice is visible before the tournament is created rather than after.
+    await waitFor(() => {
+      // Both copies are flagged, since either could be the mistake.
+      expect(screen.getAllByText("repeated")).toHaveLength(2);
+    });
+    expect(screen.getByText(/3 entrants ready/i)).toBeInTheDocument();
+  });
+});
+
+describe("score entry over the draw", () => {
+  it("closes on Escape and gives focus back", async () => {
+    const user = userEvent.setup();
+    seedTournament(["Marie", "Luc", "Ana", "Paul"]);
+    goTo("#/t/demo");
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /start the tournament/i }));
+    await user.click(screen.getByRole("link", { name: "Draw" }));
+
+    const fixture = (await screen.findAllByRole("button", { name: /versus/i }))[0]!;
+    await user.click(fixture);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("dismisses when the backdrop is clicked", async () => {
+    const user = userEvent.setup();
+    seedTournament(["Marie", "Luc", "Ana", "Paul"]);
+    goTo("#/t/demo");
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /start the tournament/i }));
+    await user.click(screen.getByRole("link", { name: "Draw" }));
+    await user.click((await screen.findAllByRole("button", { name: /versus/i }))[0]!);
+
+    await user.click(await screen.findByRole("button", { name: /close score entry/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+});

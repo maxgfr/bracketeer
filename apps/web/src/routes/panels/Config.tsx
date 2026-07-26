@@ -23,8 +23,9 @@ import {
   inputClass,
   Label,
   Notice,
+  NumberInput,
   Section,
-  selectClass,
+  Select,
 } from "../../components/Sheet.js";
 import { STAGE_LABELS, TIEBREAKER_TITLES } from "../../lib/format.js";
 import type { Store } from "../Tournament.js";
@@ -66,7 +67,7 @@ export function ConfigPanel({ store }: { store: Store }) {
       <Section label="Who plays">
         <div className="grid gap-5 py-5 sm:grid-cols-2">
           <Field label="Entrant" hint="What one competitor in this tournament is.">
-            <select
+            <Select
               value={config.entrant.kind}
               onChange={(e) =>
                 update({
@@ -79,19 +80,15 @@ export function ConfigPanel({ store }: { store: Store }) {
                         : { kind: "individual" },
                 })
               }
-              className={selectClass}
             >
               <option value="individual">One person</option>
               <option value="fixed_team">A team, fixed for the tournament</option>
               <option value="drawn_team">Partners redrawn each round</option>
-            </select>
+            </Select>
           </Field>
 
           <Field label="Sides per fixture" hint="Two is head-to-head. Three or more is a free-for-all.">
-            <input
-              type="number"
-              min={2}
-              max={64}
+            <NumberInput
               value={config.match.sidesPerMatch}
               onChange={(e) =>
                 update({
@@ -115,23 +112,22 @@ export function ConfigPanel({ store }: { store: Store }) {
       <Section label="How you win">
         <div className="grid gap-5 py-5 sm:grid-cols-2">
           <Field label="A result is recorded as">
-            <select
+            <Select
               value={config.score.kind}
               onChange={(e) => update({ ...config, score: scoreDefaults(e.target.value) })}
-              className={selectClass}
             >
               <option value="points">Points scored</option>
               <option value="sets">Sets or legs</option>
               <option value="outcome">Just who won</option>
               <option value="placement">A finishing order</option>
               <option value="time">A time</option>
-            </select>
+            </Select>
           </Field>
 
           {config.score.kind === "points" ? (
             <>
               <Field label="Played to" hint="Leave blank for open-ended scoring such as goals.">
-                <input
+                <NumberInput
                   value={config.score.target ?? ""}
                   onChange={(e) =>
                     update({
@@ -139,9 +135,7 @@ export function ConfigPanel({ store }: { store: Store }) {
                       score: { ...config.score, target: e.target.value === "" ? null : Number(e.target.value) },
                     } as TournamentConfig)
                   }
-                  inputMode="numeric"
                   placeholder="13"
-                  className={`${inputClass} tnum font-mono`}
                 />
               </Field>
               <Toggle
@@ -156,7 +150,8 @@ export function ConfigPanel({ store }: { store: Store }) {
 
           {config.score.kind === "sets" ? (
             <Field label="Best of" hint="How many sets at most.">
-              <input
+              <NumberInput
+                decimal
                 value={config.score.bestOf}
                 onChange={(e) =>
                   update({
@@ -164,9 +159,7 @@ export function ConfigPanel({ store }: { store: Store }) {
                     score: { ...config.score, bestOf: Math.max(1, Number(e.target.value) || 1) },
                   } as TournamentConfig)
                 }
-                inputMode="numeric"
-                className={`${inputClass} tnum font-mono`}
-              />
+                />
             </Field>
           ) : null}
 
@@ -185,7 +178,7 @@ export function ConfigPanel({ store }: { store: Store }) {
               label="Points by finishing place"
               hint="Comma separated, best first. Leave blank to score by reverse order."
             >
-              <input
+              <NumberInput
                 value={config.score.pointsByPlace.join(", ")}
                 onChange={(e) =>
                   update({
@@ -224,7 +217,7 @@ export function ConfigPanel({ store }: { store: Store }) {
       <Section label="Who plays whom">
         <div className="grid gap-5 py-5 sm:grid-cols-2">
           <Field label="Pairing" hint="How each round is drawn.">
-            <select
+            <Select
               value={config.pairing.strategy}
               onChange={(e) =>
                 update({
@@ -232,7 +225,6 @@ export function ConfigPanel({ store }: { store: Store }) {
                   pairing: { ...config.pairing, strategy: e.target.value as never },
                 })
               }
-              className={selectClass}
             >
               <option value="seeded">Seeded — strongest meets weakest</option>
               <option value="random">Random draw</option>
@@ -240,11 +232,11 @@ export function ConfigPanel({ store }: { store: Store }) {
               <option value="closest_rating">Closest rating</option>
               <option value="rating_spread">Widest rating gap</option>
               <option value="berger">Berger — everyone meets everyone</option>
-            </select>
+            </Select>
           </Field>
 
           <Field label="Who sits out an odd round">
-            <select
+            <Select
               value={config.pairing.byePolicy}
               onChange={(e) =>
                 update({
@@ -252,12 +244,11 @@ export function ConfigPanel({ store }: { store: Store }) {
                   pairing: { ...config.pairing, byePolicy: e.target.value as never },
                 })
               }
-              className={selectClass}
             >
               <option value="lowest_ranked">The lowest ranked</option>
               <option value="highest_ranked">The leader</option>
               <option value="random">Drawn at random</option>
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -325,7 +316,7 @@ export function ConfigPanel({ store }: { store: Store }) {
       <Section label="How points are awarded">
         <div className="grid gap-5 py-5 sm:grid-cols-3">
           <Field label="Points come from">
-            <select
+            <Select
               value={config.standings.pointsSource}
               onChange={(e) =>
                 update({
@@ -333,11 +324,10 @@ export function ConfigPanel({ store }: { store: Store }) {
                   standings: { ...config.standings, pointsSource: e.target.value as never },
                 })
               }
-              className={selectClass}
             >
               <option value="outcome">The result — a win is worth a fixed amount</option>
               <option value="score">The scoreline — what you actually scored</option>
-            </select>
+            </Select>
           </Field>
           {(["win", "draw", "loss", "bye"] as const).map((key) => (
             <Field key={key} label={key === "bye" ? "A bye" : `A ${key}`}>
@@ -355,8 +345,6 @@ export function ConfigPanel({ store }: { store: Store }) {
                     },
                   })
                 }
-                inputMode="decimal"
-                className={`${inputClass} tnum font-mono`}
               />
             </Field>
           ))}
@@ -373,7 +361,7 @@ export function ConfigPanel({ store }: { store: Store }) {
           {config.standings.tiebreakers.map((tiebreaker, index) => (
             <li key={`${tiebreaker.key}-${index}`} className="border-rule flex items-center gap-2 border-b py-2">
               <span className="tnum text-ink-3 w-5 shrink-0 font-mono text-sm">{index + 1}</span>
-              <select
+              <Select
                 value={tiebreaker.key}
                 aria-label={`Tiebreaker ${index + 1}`}
                 onChange={(e) => {
@@ -381,14 +369,14 @@ export function ConfigPanel({ store }: { store: Store }) {
                   next[index] = { ...tiebreaker, key: e.target.value as TiebreakerKey };
                   update({ ...config, standings: { ...config.standings, tiebreakers: next } });
                 }}
-                className={`${selectClass} flex-1`}
+                className="flex-1"
               >
                 {TIEBREAKER_KEYS.map((key) => (
                   <option key={key} value={key}>
                     {TIEBREAKER_TITLES[key] ?? key}
                   </option>
                 ))}
-              </select>
+              </Select>
               <Button
                 variant="quiet"
                 title="Reverse — lowest first"
@@ -456,18 +444,17 @@ export function ConfigPanel({ store }: { store: Store }) {
       <Section label="Ratings">
         <div className="grid gap-5 py-5 sm:grid-cols-2">
           <Field label="System">
-            <select
+            <Select
               value={config.rating.system}
               onChange={(e) =>
                 update({ ...config, rating: { ...config.rating, system: e.target.value as never } })
               }
-              className={selectClass}
             >
               <option value="none">None</option>
               <option value="elo">Elo</option>
               <option value="glicko2">Glicko-2 — carries its own uncertainty</option>
               <option value="trueskill">TrueSkill-style — for teams and free-for-alls</option>
-            </select>
+            </Select>
           </Field>
           {config.rating.system === "elo" ? (
             <>
@@ -483,9 +470,7 @@ export function ConfigPanel({ store }: { store: Store }) {
                       },
                     })
                   }
-                  inputMode="numeric"
-                  className={`${inputClass} tnum font-mono`}
-                />
+              />
               </Field>
               <Toggle
                 label="Weight by margin of victory"

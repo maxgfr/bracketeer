@@ -7,10 +7,10 @@
  */
 
 import type { BracketSlot, Match } from "@bracketeer/engine";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bracket } from "../../components/Bracket.js";
 import { ScoreEntry } from "../../components/ScoreEntry.js";
-import { Empty, Figure, Label, Marker, Section } from "../../components/Sheet.js";
+import { Button, Empty, Figure, Label, Marker, Section } from "../../components/Sheet.js";
 import { entrantName, scoreline, STAGE_LABELS, winningSideIndex } from "../../lib/format.js";
 import type { Store } from "../Tournament.js";
 
@@ -72,23 +72,86 @@ export function DrawPanel({ store }: { store: Store }) {
       })}
 
       {editing ? (
-        <div className="no-print border-rule-strong bg-paper-raised fixed inset-x-0 bottom-0 z-10 border-t-2 p-5 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.25)]">
-          <div className="mx-auto max-w-lg">
-            <Label>{editing.label ?? "Fixture"}</Label>
-            <div className="mt-3">
-              <ScoreEntry
-                state={state}
-                match={editing}
-                onSubmit={(result) => {
-                  dispatch({ type: "result_reported", matchId: editing.id, result });
-                  setEditing(null);
-                }}
-                onCancel={() => setEditing(null)}
-              />
-            </div>
-          </div>
-        </div>
+        <ScoreSheet
+          label={editing.label ?? "Fixture"}
+          onDismiss={() => setEditing(null)}
+        >
+          <ScoreEntry
+            state={state}
+            match={editing}
+            onSubmit={(result) => {
+              dispatch({ type: "result_reported", matchId: editing.id, result });
+              setEditing(null);
+            }}
+            onCancel={() => setEditing(null)}
+          />
+        </ScoreSheet>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Score entry raised over the draw.
+ *
+ * A bracket is a two-dimensional canvas — expanding a fixture in place would
+ * shove every other fixture sideways and lose the reader's position. So this
+ * one case earns a raised sheet, and pays the price properly: Escape dismisses
+ * it, the backdrop is clickable, focus moves in and returns to where it came
+ * from, and the page behind stops scrolling.
+ */
+function ScoreSheet({
+  label,
+  onDismiss,
+  children,
+}: {
+  label: string;
+  onDismiss: () => void;
+  children: React.ReactNode;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  const returnFocusTo = useRef<Element | null>(null);
+
+  useEffect(() => {
+    returnFocusTo.current = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onDismiss();
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      (returnFocusTo.current as HTMLElement | null)?.focus?.();
+    };
+  }, [onDismiss]);
+
+  return (
+    <div className="no-print fixed inset-0 z-20 flex items-end justify-center">
+      <button
+        type="button"
+        aria-label="Close score entry"
+        onClick={onDismiss}
+        className="absolute inset-0 bg-black/25"
+      />
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Score for ${label}`}
+        className="border-rule-strong bg-paper-raised relative w-full max-w-lg border-t-2 p-5 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.3)]"
+      >
+        <div className="flex items-baseline justify-between gap-4">
+          <Label>{label}</Label>
+          <Button variant="quiet" onClick={onDismiss} title="Close (Esc)">
+            Close
+          </Button>
+        </div>
+        <div className="mt-3">{children}</div>
+      </div>
     </div>
   );
 }

@@ -18,10 +18,16 @@
   --paper-sunk: oklch(96.4% 0.003 250);
   --paper-raised: oklch(100% 0 0);
 
-  /* Printing ink: near-black with a blue cast. */
+  /*
+    Printing ink: near-black with a blue cast.
+
+    The muted inks are set at the lightest value that still clears 4.5:1 against
+    the ground, measured rather than eyeballed — `ink-3` carries small text like
+    column heads and hints, so "large text only" is not good enough for it.
+  */
   --ink: oklch(21% 0.018 255);
   --ink-2: oklch(46% 0.014 255);
-  --ink-3: oklch(62% 0.011 255);
+  --ink-3: oklch(54% 0.012 255);
 
   --rule: oklch(88% 0.004 255);
   --rule-strong: oklch(21% 0.018 255);
@@ -45,7 +51,7 @@
 
     --ink: oklch(96% 0.004 255);
     --ink-2: oklch(74% 0.012 255);
-    --ink-3: oklch(58% 0.012 255);
+    --ink-3: oklch(61% 0.013 255);
 
     --rule: oklch(31% 0.014 255);
     --rule-strong: oklch(72% 0.014 255);
@@ -68,7 +74,7 @@
 
   --ink: oklch(96% 0.004 255);
   --ink-2: oklch(74% 0.012 255);
-  --ink-3: oklch(58% 0.012 255);
+  --ink-3: oklch(61% 0.013 255);
 
   --rule: oklch(31% 0.014 255);
   --rule-strong: oklch(72% 0.014 255);

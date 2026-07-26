@@ -33,6 +33,17 @@ export function NewTournament() {
     [roster],
   );
 
+  /** Two entrants with the same name are almost always a paste gone wrong. */
+  const duplicates = useMemo(() => {
+    const seen = new Set<string>();
+    const repeated = new Set<string>();
+    for (const name of entrants) {
+      if (seen.has(name)) repeated.add(name);
+      seen.add(name);
+    }
+    return repeated;
+  }, [entrants]);
+
   const create = (event: React.FormEvent) => {
     event.preventDefault();
     if (!example) return;
@@ -108,10 +119,15 @@ export function NewTournament() {
               return (
                 <label
                   key={option.id}
-                  className={`border-rule flex cursor-pointer items-start gap-3 border-b py-3 ${
-                    selected ? "" : "hover:bg-paper-sunk"
-                  } transition-colors`}
+                  className={`border-rule flex cursor-pointer items-start gap-3 border-b py-3 transition-colors ${
+                    selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
+                  } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
                 >
+                  {/*
+                    The native control is hidden but still focusable, so the row
+                    carries the focus ring on its behalf — otherwise keyboard
+                    users would be moving through an invisible selection.
+                  */}
                   <input
                     type="radio"
                     name="example"
@@ -147,7 +163,7 @@ export function NewTournament() {
           label="Entrants"
           meta={entrants.length > 0 ? `${entrants.length} listed` : "One per line"}
         >
-          <div className="py-5">
+          <div className="grid gap-5 py-5 sm:grid-cols-2">
             <Field
               label="Names"
               hint="One per line, strongest first — the order becomes the seeding. You can add more later."
@@ -155,11 +171,42 @@ export function NewTournament() {
               <textarea
                 value={roster}
                 onChange={(e) => setRoster(e.target.value)}
-                rows={8}
+                rows={9}
                 placeholder={"Marie Dubois\nLuc Martin\nAna Costa\nPaul Rossi"}
                 className={`${inputClass} resize-y font-mono text-sm leading-relaxed`}
               />
             </Field>
+
+            {/*
+              Reading back what was typed, seeded, is worth the space: a stray
+              blank line or a duplicated name is obvious here and invisible in
+              the textarea.
+            */}
+            <div>
+              <Label>Draw order</Label>
+              {entrants.length === 0 ? (
+                <p className="text-ink-3 mt-2 text-sm">Nobody yet.</p>
+              ) : (
+                <ol className="mt-1.5 max-h-64 overflow-y-auto">
+                  {entrants.map((entrantName, i) => (
+                    <li
+                      key={`${entrantName}-${i}`}
+                      className="border-rule flex items-baseline gap-3 border-b py-1.5"
+                    >
+                      <span className="tnum text-ink-3 w-6 shrink-0 text-right font-mono text-xs">
+                        {i + 1}
+                      </span>
+                      <span className="text-ink-2 min-w-0 flex-1 truncate text-sm">
+                        {entrantName}
+                      </span>
+                      {duplicates.has(entrantName) ? (
+                        <span className="text-signal-ink text-xs">repeated</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           </div>
         </Section>
 

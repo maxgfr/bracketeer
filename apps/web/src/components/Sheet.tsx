@@ -91,13 +91,16 @@ export function Figure({
   children,
   className = "",
   emphasis = false,
+  title,
 }: {
   children: ReactNode;
   className?: string;
   emphasis?: boolean;
+  title?: string;
 }) {
   return (
     <span
+      title={title}
       className={`tnum font-mono ${emphasis ? "text-ink font-semibold" : "text-ink-2"} ${className}`}
     >
       {children}
@@ -148,25 +151,87 @@ export function Field({
   hint,
   children,
   className = "",
+  error,
 }: {
   label: string;
   hint?: string;
   children: ReactNode;
   className?: string;
+  error?: string | null;
 }) {
   return (
     <label className={`block ${className}`}>
       <span className="sheet-label text-ink-2 mb-1.5 block">{label}</span>
       {children}
-      {hint ? <span className="text-ink-3 mt-1 block text-xs leading-snug">{hint}</span> : null}
+      {error ? (
+        <span role="alert" className="text-signal-ink mt-1 block text-xs leading-snug">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="text-ink-3 mt-1 block text-xs leading-snug">{hint}</span>
+      ) : null}
     </label>
   );
 }
 
+/**
+ * A field on the sheet reads as a box ruled for writing in: square, bordered,
+ * on its own ground. It has to be unmistakably editable at a glance — half the
+ * screens here mix values you can change with values you cannot, and an input
+ * that looks like text is an input nobody finds.
+ */
 export const inputClass =
-  "border-rule bg-field text-ink placeholder:text-ink-3 min-h-10 w-full border px-2.5 py-1.5 text-sm";
+  "border-rule bg-field text-ink placeholder:text-ink-3 min-h-10 w-full rounded-[2px] border px-2.5 py-1.5 text-sm transition-colors hover:border-ink-3 focus:border-ink-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-export const selectClass = `${inputClass} appearance-none pr-8 bg-[length:10px] bg-[right_0.6rem_center] bg-no-repeat`;
+/** Narrower, for a value sitting inline in a row rather than in a form. */
+export const inlineInputClass =
+  "border-rule bg-field text-ink placeholder:text-ink-3 min-h-9 rounded-[2px] border px-2 py-1 text-sm transition-colors hover:border-ink-3 focus:border-ink-2";
+
+/**
+ * A select carries its own chevron. `appearance-none` strips the native one, so
+ * it has to be drawn back — an unmarked select is indistinguishable from a text
+ * field until you click it.
+ */
+export function Select({
+  children,
+  className = "",
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className="relative block">
+      <select {...props} className={`${inputClass} appearance-none pr-9 ${className}`}>
+        {children}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 10 6"
+        className="text-ink-3 pointer-events-none absolute top-1/2 right-3 w-2.5 -translate-y-1/2"
+      >
+        <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * A number that is typed rather than nudged. `inputMode` brings up a numeric
+ * keypad on a phone, which matters far more here than spinner arrows do — these
+ * are filled in standing up, one-handed.
+ */
+export function NumberInput({
+  className = "",
+  decimal = false,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { decimal?: boolean }) {
+  return (
+    <input
+      {...props}
+      type="text"
+      inputMode={decimal ? "decimal" : "numeric"}
+      className={`${inputClass} tnum font-mono ${className}`}
+    />
+  );
+}
 
 /** What to show where there is nothing yet: say what is missing and what to do. */
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {

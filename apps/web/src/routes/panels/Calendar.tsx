@@ -17,6 +17,7 @@ import {
   inputClass,
   Label,
   Notice,
+  NumberInput,
   Section,
 } from "../../components/Sheet.js";
 import { entrantName, formatDay, formatTime } from "../../lib/format.js";
@@ -95,19 +96,17 @@ export function CalendarPanel({ store }: { store: Store }) {
             />
           </Field>
           <Field label="Minutes per fixture">
-            <input
+            <NumberInput
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              inputMode="numeric"
-              className={`${inputClass} tnum font-mono`}
+
             />
           </Field>
           <Field label="Break between rounds" hint="Minutes.">
-            <input
+            <NumberInput
               value={gap}
               onChange={(e) => setGap(e.target.value)}
-              inputMode="numeric"
-              className={`${inputClass} tnum font-mono`}
+
             />
           </Field>
           <Field

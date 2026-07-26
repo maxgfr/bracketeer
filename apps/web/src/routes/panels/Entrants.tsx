@@ -13,9 +13,11 @@ import {
   Empty,
   Field,
   Figure,
+  inlineInputClass,
   inputClass,
   Label,
   Notice,
+  NumberInput,
   Section,
 } from "../../components/Sheet.js";
 import { randomId } from "../../lib/storage.js";
@@ -54,45 +56,73 @@ export function EntrantsPanel({ store }: { store: Store }) {
               <li
                 key={entrant.id}
                 className={`border-rule flex flex-wrap items-center gap-x-3 gap-y-2 border-b py-2.5 ${
-                  entrant.status === "withdrawn" ? "opacity-50" : ""
+                  entrant.status === "withdrawn" ? "opacity-55" : ""
                 }`}
               >
-                <Figure className="w-7 shrink-0 text-right">{entrant.seed ?? "—"}</Figure>
-
-                <input
-                  value={entrant.name}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "entrant_updated",
-                      id: entrant.id,
-                      patch: { name: e.target.value },
-                    })
-                  }
-                  aria-label={`Name of entrant ${entrant.seed ?? ""}`}
-                  className="text-ink min-w-32 flex-1 border-0 bg-transparent p-0 text-sm font-medium focus:outline-none"
-                />
-
-                {fields.map((field) => (
-                  <input
-                    key={field.key}
-                    value={entrant.meta[field.key] ?? ""}
-                    placeholder={field.label}
-                    aria-label={`${field.label} for ${entrant.name}`}
+                <label className="shrink-0">
+                  <span className="sr-only">Seed for {entrant.name}</span>
+                  <NumberInput
+                    value={entrant.seed ?? ""}
+                    placeholder="—"
                     onChange={(e) =>
                       dispatch({
                         type: "entrant_updated",
                         id: entrant.id,
-                        patch: { meta: { ...entrant.meta, [field.key]: e.target.value } },
+                        patch: {
+                          seed: e.target.value === "" ? null : Number(e.target.value),
+                        },
                       })
                     }
-                    className="border-rule text-ink-2 placeholder:text-ink-3 w-28 border-b bg-transparent px-0 py-0.5 text-xs focus:outline-none"
+                    className="w-14 min-h-9 text-center"
                   />
+                </label>
+
+                <label className="min-w-40 flex-1">
+                  <span className="sr-only">Name of entrant {entrant.seed ?? ""}</span>
+                  <input
+                    value={entrant.name}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "entrant_updated",
+                        id: entrant.id,
+                        patch: { name: e.target.value },
+                      })
+                    }
+                    className={`${inlineInputClass} w-full font-medium`}
+                  />
+                </label>
+
+                {fields.map((field) => (
+                  <label key={field.key} className="shrink-0">
+                    <span className="sr-only">
+                      {field.label} for {entrant.name}
+                    </span>
+                    <input
+                      value={entrant.meta[field.key] ?? ""}
+                      placeholder={field.label}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "entrant_updated",
+                          id: entrant.id,
+                          patch: { meta: { ...entrant.meta, [field.key]: e.target.value } },
+                        })
+                      }
+                      className={`${inlineInputClass} w-28`}
+                    />
+                  </label>
                 ))}
 
                 {state.config.rating.system !== "none" ? (
-                  <Figure className="w-14 shrink-0 text-right text-xs">
+                  <Figure
+                    className="w-14 shrink-0 text-right text-xs"
+                    title={`Current rating for ${entrant.name}`}
+                  >
                     {Math.round(ratings.get(entrant.id) ?? state.config.rating.initial)}
                   </Figure>
+                ) : null}
+
+                {entrant.status === "withdrawn" ? (
+                  <Label className="text-signal-ink">Withdrawn</Label>
                 ) : null}
 
                 <Button
