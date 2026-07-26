@@ -24,5 +24,6 @@ export * from "./domain/entities.js";
 export * from "./events/types.js";
 export * from "./events/reducer.js";
 export * from "./scoring/normalize.js";
+export * from "./pairing/index.js";
 export * from "./standings/index.js";
 export * from "./util/rng.js";
