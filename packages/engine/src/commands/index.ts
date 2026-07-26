@@ -26,10 +26,12 @@ import {
 } from "../formats/elimination.js";
 import { allocateGroups, selectQualifiers } from "../formats/groups.js";
 import { buildRoundRobin } from "../formats/roundRobin.js";
+import { buildStepladder, buildPagePlayoff } from "../formats/stepladder.js";
 import { buildSwissRound, defaultSwissRounds } from "../formats/swiss.js";
 import { buildHistory } from "../pairing/history.js";
 import { computeRatings, ratingValues } from "../rating/index.js";
 import { outcomeOfMatch } from "../scoring/normalize.js";
+import { accelerationBonus } from "../standings/initial.js";
 import { computeStandings, groupStandings, stageStandings } from "../standings/index.js";
 import { createRng, seedFromString } from "../util/rng.js";
 
@@ -163,7 +165,30 @@ function buildStageMatches(
   const rng = stageRng(state, stageId, "draw");
   const hasHomeSide = state.config.match.hasHomeSide;
 
+  // Seeding by rating is an ordering decision, not a bracket-shape one: sort the
+  // field here and the fold downstream needs to know nothing about ratings.
+  if (
+    (config.kind === "single_elimination" || config.kind === "double_elimination") &&
+    config.seeding.method === "by_rating"
+  ) {
+    const ratings = ratingValues(computeRatings(state));
+    entrantIds = entrantIds
+      .slice()
+      .sort((a, b) => (ratings.get(b) ?? 0) - (ratings.get(a) ?? 0));
+  }
+
   switch (config.kind) {
+    case "stepladder":
+      return buildStepladder({
+        stageId,
+        entrantIds,
+        rungs: config.rungs,
+        hasHomeSide,
+      });
+
+    case "page_playoff":
+      return buildPagePlayoff({ stageId, entrantIds, hasHomeSide });
+
     case "single_elimination":
       return buildSingleElimination({
         stageId,
@@ -260,12 +285,20 @@ function swissRoundEvents(
     const relevant = matchesOfStage(state, stageId).filter(
       (m) => (groupId === null ? true : m.groupId === groupId),
     );
-    const points = new Map(
+    const base = new Map(
       computeStandings(state, relevant, ids, { ratings }).map((row) => [
         row.entrantId,
         row.record.competitionPoints,
       ]),
     );
+
+    // Accelerated pairings add virtual points for the opening rounds only, so
+    // the strong half of a large field meets itself immediately. They shape the
+    // draw and never reach the table.
+    const points =
+      config.kind === "swiss"
+        ? accelerationBonus(ids, base, ratings, config.accelerated, roundIndex)
+        : base;
 
     return buildSwissRound({
       stageId,

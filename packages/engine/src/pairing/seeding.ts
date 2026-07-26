@@ -42,9 +42,15 @@ export function bracketSize(count: number): number {
  * seeds are laid out by the fold above, those byes land on the strongest
  * entrants, which is the conventional reward for seeding well.
  */
+export type SeedingMethod = "standard" | "ordered" | "random" | "manual" | "by_rating";
+
 export function seedIntoBracket(
   entrantIds: readonly EntrantId[],
-  method: "standard" | "ordered" | "random" | "manual",
+  /**
+   * `by_rating` behaves exactly like `standard`; the difference is upstream,
+   * where the caller orders the field by rating instead of by entered seed.
+   */
+  method: SeedingMethod,
   rng: Rng,
   manualSlots: readonly EntrantId[] = [],
 ): (EntrantId | null)[] {

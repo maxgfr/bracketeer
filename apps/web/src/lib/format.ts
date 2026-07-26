@@ -114,6 +114,8 @@ export const STAGE_LABELS: Record<string, string> = {
   swiss: "Swiss",
   groups: "Groups",
   ladder: "Ladder",
+  stepladder: "Stepladder",
+  page_playoff: "Page playoff",
 };
 
 export const BRACKET_LABELS: Record<string, string> = {

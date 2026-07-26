@@ -5,9 +5,11 @@
 import type { StandingsConfig } from "../domain/config.js";
 import type { EntrantId, Match, StageId, TournamentState } from "../domain/entities.js";
 import { matchesOfStage } from "../domain/entities.js";
+import { startingScores } from "./initial.js";
 import { computeRecords, type EntrantRecord } from "./records.js";
 import { metricsFor, rankEntrants, type TiebreakContext } from "./tiebreakers.js";
 
+export * from "./initial.js";
 export * from "./records.js";
 export * from "./tiebreakers.js";
 
@@ -37,13 +39,16 @@ export function computeStandings(
   options: StandingsOptions = {},
 ): StandingRow[] {
   const standings = options.standings ?? state.config.standings;
-  const records = computeRecords(matches, state.config.score, standings, entrantIds);
+  const ratings = options.ratings ?? new Map<EntrantId, number>();
+  const records = computeRecords(
+    matches,
+    state.config.score,
+    standings,
+    entrantIds,
+    startingScores(entrantIds, ratings, standings),
+  );
 
-  const context: TiebreakContext = {
-    records,
-    ratings: options.ratings ?? new Map(),
-    seed: state.seed,
-  };
+  const context: TiebreakContext = { records, ratings, seed: state.seed };
 
   const tiers = rankEntrants(entrantIds, standings.tiebreakers, context);
 

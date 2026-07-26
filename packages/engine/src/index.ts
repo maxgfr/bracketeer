@@ -31,6 +31,7 @@ export * from "./formats/elimination.js";
 export * from "./formats/groups.js";
 export * from "./formats/ladder.js";
 export * from "./formats/roundRobin.js";
+export * from "./formats/stepladder.js";
 export * from "./formats/swiss.js";
 export * from "./pairing/index.js";
 export * from "./rating/index.js";

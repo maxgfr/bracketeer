@@ -96,7 +96,6 @@ export function ConfigPanel({ store }: { store: Store }) {
                   match: { ...config.match, sidesPerMatch: Math.max(2, Number(e.target.value) || 2) },
                 })
               }
-              className={`${inputClass} tnum font-mono`}
             />
           </Field>
 
@@ -151,7 +150,6 @@ export function ConfigPanel({ store }: { store: Store }) {
           {config.score.kind === "sets" ? (
             <Field label="Best of" hint="How many sets at most.">
               <NumberInput
-                decimal
                 value={config.score.bestOf}
                 onChange={(e) =>
                   update({
@@ -178,7 +176,7 @@ export function ConfigPanel({ store }: { store: Store }) {
               label="Points by finishing place"
               hint="Comma separated, best first. Leave blank to score by reverse order."
             >
-              <NumberInput
+              <input
                 value={config.score.pointsByPlace.join(", ")}
                 onChange={(e) =>
                   update({
@@ -315,6 +313,29 @@ export function ConfigPanel({ store }: { store: Store }) {
 
       <Section label="How points are awarded">
         <div className="grid gap-5 py-5 sm:grid-cols-3">
+          <Field
+            label="Head start"
+            hint="McMahon: strong entrants begin on a higher score and keep it to the end, so a wide field meets its own level from round one."
+          >
+            <Select
+              value={config.standings.initialScore.source}
+              onChange={(e) =>
+                update({
+                  ...config,
+                  standings: {
+                    ...config.standings,
+                    initialScore: {
+                      ...config.standings.initialScore,
+                      source: e.target.value as never,
+                    },
+                  },
+                })
+              }
+            >
+              <option value="none">Everybody starts on zero</option>
+              <option value="rating_band">By rating band</option>
+            </Select>
+          </Field>
           <Field label="Points come from">
             <Select
               value={config.standings.pointsSource}

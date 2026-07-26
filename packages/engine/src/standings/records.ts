@@ -35,6 +35,8 @@ export interface EntrantRecord {
   pointsAgainst: number;
   competitionPoints: number;
   bonusPoints: number;
+  /** What the entrant began on. Zero unless a starting-score rule is in use. */
+  startingPoints: number;
   appearances: MatchAppearance[];
 }
 
@@ -50,6 +52,7 @@ function emptyRecord(entrantId: EntrantId): EntrantRecord {
     pointsAgainst: 0,
     competitionPoints: 0,
     bonusPoints: 0,
+    startingPoints: 0,
     appearances: [],
   };
 }
@@ -150,9 +153,20 @@ export function computeRecords(
   score: ScoreConfig,
   standings: StandingsConfig,
   entrantIds: readonly EntrantId[],
+  /**
+   * McMahon-style head starts. Unlike accelerated pairings, these count right
+   * through to the final table, so they belong in the record rather than only
+   * in the draw.
+   */
+  startingPoints: Map<EntrantId, number> = new Map(),
 ): Map<EntrantId, EntrantRecord> {
   const records = new Map<EntrantId, EntrantRecord>();
-  for (const id of entrantIds) records.set(id, emptyRecord(id));
+  for (const id of entrantIds) {
+    const record = emptyRecord(id);
+    record.startingPoints = startingPoints.get(id) ?? 0;
+    record.competitionPoints = record.startingPoints;
+    records.set(id, record);
+  }
 
   const system = standings.pointsSystem;
 

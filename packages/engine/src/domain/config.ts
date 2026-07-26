@@ -198,6 +198,27 @@ export const standingsConfigSchema = z
      * of twelve is still worth something.
      */
     pointsSource: z.enum(["outcome", "score"]).default("outcome"),
+    /**
+     * Points an entrant starts the event on, before playing anybody.
+     *
+     * This is the McMahon system, standard in European Go: strong players begin
+     * on a higher score so they meet each other immediately, and — unlike
+     * accelerated pairings, where the boost is taken away again — the head start
+     * counts right through to the final table. It lets one event serve a field
+     * spanning a huge range of strength without the top players spending three
+     * rounds beating beginners.
+     */
+    initialScore: z
+      .object({
+        source: z.enum(["none", "rating_band"]).default("none"),
+        /** Rating points per band. Every band up is worth one starting point. */
+        bandSize: z.number().positive().default(100),
+        /** The most a starting score can be, however strong the entrant. */
+        maxBonus: z.number().min(0).default(3),
+        /** Ratings at or below this start on zero. Go calls this the bar. */
+        floor: z.number().nullable().default(null),
+      })
+      .default({}),
     pointsSystem: pointsSystemSchema,
     /**
      * Applied in order until the tie breaks. The final entry should always
@@ -287,7 +308,9 @@ export const seedingSchema = z
      * "standard" is the classic bracket fold (1v16, 8v9, …) that keeps the top
      * seeds apart. "ordered" fills slots in listed order. "random" draws lots.
      */
-    method: z.enum(["standard", "ordered", "random", "manual"]).default("standard"),
+    method: z
+      .enum(["standard", "ordered", "random", "manual", "by_rating"])
+      .default("standard"),
     /** For "manual": entrant id per bracket slot, in slot order. */
     slots: z.array(z.string()).default([]),
   })
@@ -360,6 +383,20 @@ const swissSchema = z.object({
   rounds: z.number().int().positive().nullable().default(null),
   /** Stop early once a single entrant is mathematically uncatchable. */
   stopWhenDecided: z.boolean().default(false),
+  /**
+   * Accelerated pairings.
+   *
+   * For the first few rounds the top half of the field carries virtual points,
+   * so strong entrants meet each other straight away instead of spending three
+   * rounds beating the bottom of the draw. The bonus is used only for pairing
+   * and is dropped afterwards, which is what separates this from McMahon.
+   */
+  accelerated: z
+    .object({
+      rounds: z.number().int().min(0).default(0),
+      bonus: z.number().default(1),
+    })
+    .default({}),
 });
 
 const ladderSchema = z.object({
@@ -371,6 +408,31 @@ const ladderSchema = z.object({
   takeRungOnWin: z.boolean().default(true),
 });
 
+/**
+ * A stepladder: the lowest qualifier plays the next lowest, and the winner keeps
+ * climbing until somebody beats the top seed. Bowling finals and several esports
+ * qualifiers work this way — it rewards finishing top far more heavily than a
+ * bracket does, because the leader only has to win once.
+ */
+const stepladderSchema = z.object({
+  ...stageCommon,
+  kind: z.literal("stepladder"),
+  /** How many climb. null uses everyone who entered the stage. */
+  rungs: z.number().int().min(2).nullable().default(null),
+});
+
+/**
+ * The Page playoff: a four-entrant finish used in curling, softball and several
+ * cricket competitions. First plays second for a place in the final; third plays
+ * fourth to survive; the loser of the first meets the winner of the second. It
+ * gives the top two a second chance without the length of a full double
+ * elimination.
+ */
+const pagePlayoffSchema = z.object({
+  ...stageCommon,
+  kind: z.literal("page_playoff"),
+});
+
 /** Stages that a group can run internally. Groups do not nest inside groups. */
 const innerStageSchema = z.discriminatedUnion("kind", [
   singleEliminationSchema,
@@ -378,6 +440,8 @@ const innerStageSchema = z.discriminatedUnion("kind", [
   roundRobinSchema,
   swissSchema,
   ladderSchema,
+  stepladderSchema,
+  pagePlayoffSchema,
 ]);
 
 const groupsSchema = z.object({
@@ -398,6 +462,8 @@ export const stageConfigSchema = z.discriminatedUnion("kind", [
   roundRobinSchema,
   swissSchema,
   ladderSchema,
+  stepladderSchema,
+  pagePlayoffSchema,
   groupsSchema,
 ]);
 
