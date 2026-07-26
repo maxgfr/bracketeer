@@ -28,7 +28,10 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
   }, [log]);
 
   const origin = `${window.location.origin}${window.location.pathname}`;
-  const shareUrl = encoded ? `${origin}#/t/${id}?d=${encoded}` : "";
+  // When sync is on, the link says so. Otherwise the person receiving it has no
+  // way of knowing they are supposed to join anything.
+  const liveFlag = peers.status === "live" ? "&live=1" : "";
+  const shareUrl = encoded ? `${origin}#/t/${id}?d=${encoded}${liveFlag}` : "";
   const embedUrl = encoded ? `${origin}#/embed/${id}?d=${encoded}` : "";
   const verdict = encoded ? urlSizeVerdict(encoded) : "too_long";
 
@@ -106,10 +109,10 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
 
       <Section label="Live sync" meta={peers.status === "live" ? "On" : "Off"}>
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          Several phones can update the same tournament at once. Everyone opens the same link and
-          turns this on; scores entered on one device appear on the others within seconds. Devices
-          that were disconnected catch up when they return — the tournament is a set of events, so
-          merging cannot lose one.
+          Several phones can update the same tournament at once. Turn it on here, then share the
+          link again — it will carry the invitation, and whoever opens it is offered a single tap to
+          join. Scores entered on one device appear on the others within seconds, and a device that
+          drops out catches up when it returns.
         </p>
 
         <Notice>
@@ -132,7 +135,7 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
           {peers.status === "live" ? (
             <span className="text-ink-2 text-sm">
               {peers.count === 0
-                ? "Connected. Waiting for another device to join."
+                ? "Connected. Copy the link above and send it — the other device has to join too."
                 : `Connected to ${peers.count} other device${peers.count === 1 ? "" : "s"}.`}
             </span>
           ) : null}

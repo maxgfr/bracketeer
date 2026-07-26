@@ -364,6 +364,14 @@ const doubleEliminationSchema = z.object({
    * finalist twice. False makes the grand final a single match.
    */
   grandFinalReset: z.boolean().default(true),
+  /**
+   * Whether the two survivors meet at all.
+   *
+   * Off, this becomes a *poule*: the pétanque group of four where winners play
+   * winners, losers play losers, and the barrage decides the second qualifier.
+   * Both survivors go through, so there is nothing left for a final to settle.
+   */
+  playGrandFinal: z.boolean().default(true),
   consolation: consolationSchema,
 });
 

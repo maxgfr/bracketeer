@@ -76,7 +76,7 @@ describe("creating a tournament", () => {
     goTo("#/new");
     render(<App />);
 
-    await user.type(screen.getByPlaceholderText(/pétanque concours/i), "Spring Open");
+    await user.type(screen.getByPlaceholderText(/concours en poules/i), "Spring Open");
     await user.type(
       screen.getByPlaceholderText(/Marie Dubois/),
       "Marie\nLuc\nAna\nPaul",
@@ -94,7 +94,7 @@ describe("creating a tournament", () => {
     render(<App />);
 
     // Each starting point states the choices that make it what it is.
-    expect(screen.getByText(/closest record · consolation · Buchholz/)).toBeInTheDocument();
+    expect(screen.getByText(/poules of four → knockout · consolante/)).toBeInTheDocument();
     expect(screen.getByText(/two legs · home and away · 3-1-0/)).toBeInTheDocument();
   });
 });
@@ -378,5 +378,36 @@ describe("score entry over the draw", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("live sync is discoverable", () => {
+  it("offers a single tap to join when the link carries the invitation", async () => {
+    const log = seedTournament(["Marie", "Luc"]);
+    goTo(`#/t/demo?d=${encode(log)}&live=1`);
+    render(<App />);
+
+    // The person receiving the link is told what it is and given one action.
+    expect(await screen.findByText(/being run live/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();
+  });
+
+  it("says nothing about live sync on an ordinary link", async () => {
+    const log = seedTournament(["Marie", "Luc"]);
+    goTo(`#/t/demo?d=${encode(log)}`);
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByText(/being run live/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
+  });
+
+  it("puts the control where the organiser already is, not seven tabs away", async () => {
+    seedTournament(["Marie", "Luc"]);
+    goTo("#/t/demo");
+    render(<App />);
+
+    // Reachable from every tab, not only from Share.
+    expect(await screen.findByRole("button", { name: "Go live" })).toBeInTheDocument();
   });
 });

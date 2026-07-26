@@ -20,7 +20,7 @@ import { Button, Notice } from "../components/Sheet.js";
 import { decode } from "../lib/codec.js";
 import { STAGE_LABELS } from "../lib/format.js";
 import { useTournament } from "../lib/useTournament.js";
-import { PeerBar, usePeers } from "../sync/PeerBar.js";
+import { PeerBar, usePeers, type PeerState } from "../sync/PeerBar.js";
 import { CalendarPanel } from "./panels/Calendar.js";
 import { ConfigPanel } from "./panels/Config.js";
 import { DrawPanel } from "./panels/Draw.js";
@@ -70,6 +70,13 @@ export function TournamentRoute() {
     }
   });
 
+  /**
+   * A link shared while sync was on carries `live=1`. Without it the person
+   * receiving the link has no idea they are meant to join anything, which is
+   * what made live sync look broken: one side waiting, the other unaware.
+   */
+  const [invited] = useState(() => new URLSearchParams(location.search).get("live") === "1");
+
   const store = useTournament(id, fromLink);
   const peers = usePeers(id, store);
   const { state } = store;
@@ -116,7 +123,8 @@ export function TournamentRoute() {
             </div>
           ) : null}
 
-          <ControlStrip store={store} />
+          <LiveBanner peers={peers} invited={invited} />
+          <ControlStrip store={store} peers={peers} />
 
           <nav className="no-print border-rule-strong mt-6 flex gap-1 overflow-x-auto border-b-2">
             {TABS.map((tab) => (
@@ -161,7 +169,13 @@ export function TournamentRoute() {
  * the organiser to deduce: open the next stage, draw the next round, or nothing
  * because there are results outstanding.
  */
-function ControlStrip({ store }: { store: ReturnType<typeof useTournament> }) {
+function ControlStrip({
+  store,
+  peers,
+}: {
+  store: ReturnType<typeof useTournament>;
+  peers: PeerState;
+}) {
   const { state, dispatch } = store;
 
   const action = useMemo(() => {
@@ -216,12 +230,68 @@ function ControlStrip({ store }: { store: ReturnType<typeof useTournament> }) {
       ) : null}
       {action.note ? <span className="text-ink-2 text-sm">{action.note}</span> : null}
       <div className="ml-auto flex items-center gap-1">
+        <Button
+          variant="quiet"
+          onClick={peers.status === "off" || peers.status === "unavailable" ? peers.start : peers.stop}
+          title={
+            peers.status === "live"
+              ? "Stop syncing with other devices"
+              : "Let other phones update this tournament at the same time"
+          }
+        >
+          {peers.status === "live" ? "Live" : peers.status === "connecting" ? "…" : "Go live"}
+        </Button>
         <Button variant="quiet" onClick={store.undo} disabled={!store.canUndo} title="Undo your last change">
           Undo
         </Button>
       </div>
     </div>
   );
+}
+
+/**
+ * The invitation, and the honest state of it.
+ *
+ * Joining opens a connection to public relays, so it is one deliberate tap
+ * rather than something that happens silently because a link said so. Once
+ * connected and alone, it says what to do next instead of showing "waiting"
+ * forever, which is indistinguishable from broken.
+ */
+function LiveBanner({ peers, invited }: { peers: PeerState; invited: boolean }) {
+  if (peers.status === "off" && invited) {
+    return (
+      <div className="no-print border-rule bg-signal-wash mt-4 flex flex-wrap items-center gap-3 border-b px-3 py-2.5">
+        <span className="text-signal-ink flex-1 text-sm">
+          This tournament is being run live. Join and you will see scores as they are entered — and
+          can enter them yourself.
+        </span>
+        <Button variant="primary" onClick={peers.start}>
+          Join
+        </Button>
+      </div>
+    );
+  }
+
+  if (peers.status === "live" && peers.count === 0) {
+    return (
+      <div className="no-print border-rule mt-4 border-b px-3 py-2.5">
+        <span className="text-ink-2 text-sm">
+          Live, but nobody else has joined yet. Send the share link — it now carries the
+          invitation, and the other device gets a single tap to join.
+        </span>
+      </div>
+    );
+  }
+
+  if (peers.status === "unavailable") {
+    return (
+      <div className="no-print mt-4">
+        <Notice tone="warn">{peers.error ?? "Live sync is not available on this network."}</Notice>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export type Store = ReturnType<typeof useTournament>;

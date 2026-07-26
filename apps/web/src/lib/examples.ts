@@ -21,10 +21,47 @@ export interface Example {
 export const EXAMPLES: Example[] = [
   {
     id: "petanque-concours",
-    name: "Pétanque concours",
+    name: "Pétanque — concours en poules",
     summary:
-      "Games to 13, paired against whoever has the same record, with a consolation bracket so a first-round loss is not the end of the day. A hard draw is rewarded rather than punished.",
-    signature: "closest record · consolation · Buchholz",
+      "The usual shape of a French concours: doublettes drawn into poules of four in the morning — winners, losers, then the barrage — and the two who come through each poule play a knockout in the afternoon. Everyone beaten in the first round of that knockout goes into the consolante, so nobody drives home after one game.",
+    signature: "poules of four → knockout · consolante · games to 13",
+    config: {
+      entrant: { kind: "fixed_team", teamSize: 2 },
+      score: { kind: "points", target: 13 },
+      standings: {
+        pointsSystem: { win: 1, draw: 0, loss: 0, bye: 1 },
+        tiebreakers: [{ key: "wins" }, { key: "point_diff" }, { key: "drawn_lot" }],
+      },
+      rating: { system: "elo", initial: 1000 },
+      stages: [
+        {
+          kind: "groups",
+          id: "poules",
+          name: "Poules",
+          groupSize: 4,
+          distribution: "random",
+          // A poule is a double elimination with no final: winners play winners,
+          // losers play losers, and the barrage settles the second qualifier.
+          // Both survivors go through, so there is nothing left to play for.
+          inner: { kind: "double_elimination", playGrandFinal: false },
+          qualification: { perGroup: 2 },
+        },
+        {
+          kind: "single_elimination",
+          id: "principal",
+          name: "Principal",
+          consolation: "full_consolation",
+        },
+      ],
+      entrantFields: [{ key: "club", label: "Club" }],
+    },
+  },
+  {
+    id: "petanque-suisse",
+    name: "Pétanque — système suisse",
+    summary:
+      "The other way clubs run an evening: nobody is eliminated, everyone plays every round, and you are matched against whoever has the same record as you. Ties are broken by how hard your draw was, so three narrow losses to the best teams count for more than an easy run.",
+    signature: "closest record · Buchholz · nobody eliminated",
     config: {
       entrant: { kind: "fixed_team", teamSize: 2 },
       score: { kind: "points", target: 13 },
@@ -39,7 +76,7 @@ export const EXAMPLES: Example[] = [
         ],
       },
       rating: { system: "elo", initial: 1000 },
-      stages: [{ kind: "swiss", id: "main", name: "Concours" }],
+      stages: [{ kind: "swiss", id: "main", name: "Suisse" }],
       entrantFields: [{ key: "club", label: "Club" }],
     },
   },

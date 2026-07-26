@@ -27,9 +27,12 @@ engine. There are six independent axes, and a sport is just a point in that spac
 Compose them and real formats fall out, without writing code. Every one of these ships as a file
 in [`examples/`](examples):
 
-- **Pétanque concours** — games to 13, `closest_record` pairing, a `full_consolation` bracket so a
-  first-round loss is not the end of the day, tiebroken by `[wins, buchholz, point_diff]`. Two
-  players on the same record are then separated by how hard their draw was.
+- **Pétanque concours** — the usual French shape: doublettes drawn into *poules* of four
+  (`groups` running a `double_elimination` with no final, so both survivors go through), then an
+  élimination directe with a `full_consolation` *consolante* for everyone beaten in round one.
+- **Pétanque au système suisse** — the other way clubs run an evening: nobody eliminated,
+  `closest_record` pairing, tiebroken by `[wins, buchholz, point_diff]`, so two players on the same
+  record are separated by how hard their draw was.
 - **Chess Swiss** — `outcome` scoring with draws, half a point each, Sonneborn-Berger, Glicko-2 for
   players with few rated games.
 - **Football league** — `round_robin` over two legs with home and away, 3–1–0, separated by goal
@@ -50,7 +53,8 @@ Bracketeer is a static site on GitHub Pages, so there is nothing to host and not
 - **A link** — the tournament's event log is compressed into the URL. A played 16-entrant knockout
   with a consolation bracket comes to under 4 kB. The link is self-contained and works forever.
 - **A file** — JSON export, any time. This is the copy to keep.
-- **Live sync** — several phones can update the same tournament at once, peer to peer.
+- **Live sync** — several phones can update the same tournament at once, peer to peer. Turn it on
+  and the share link carries the invitation, so whoever opens it gets one tap to join.
 - **Print and embed** — the sheet prints properly, and `/embed/:id` gives a read-only view for a
   club website.
 - **Offline** — a service worker caches the app, because sports halls have bad signal.
@@ -73,7 +77,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 225 engine tests + 33 app tests
+pnpm test         # 221 engine tests + 94 app tests
 pnpm typecheck
 pnpm build
 ```

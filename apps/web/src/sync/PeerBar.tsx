@@ -41,20 +41,48 @@ interface Session {
  * a string is the one shape that cannot be quietly reinterpreted in transit, and
  * the payload is small once it is a log rather than a rendered tournament.
  */
-async function openSession(
-  roomId: string,
-  readLog: () => EventLog,
-  onIncoming: (log: EventLog) => void,
-  onPeerCount: (count: number) => void,
-): Promise<Session> {
-  const { joinRoom } = await import("trystero/nostr");
-  const room = joinRoom({ appId: "bracketeer" }, roomId);
+/**
+ * The wire contract, exported so a test can drive the other side of it with the
+ * same values rather than a copy that can drift.
+ */
+export const SYNC_APP_ID = "bracketeer";
+export const SYNC_ACTION = "log";
 
-  const action = room.makeAction<string>("log");
+export interface SessionHandlers {
+  readLog: () => EventLog;
+  onIncoming: (log: EventLog) => void;
+  onPeerCount: (count: number) => void;
+  onError: (message: string) => void;
+  /** Anything the transport can pass through for a WebRTC implementation. */
+  rtcPolyfill?: unknown;
+}
+
+export async function openSession(roomId: string, handlers: SessionHandlers): Promise<Session> {
+  const { joinRoom } = await import("trystero/nostr");
+
+  const room = joinRoom(
+    {
+      appId: SYNC_APP_ID,
+      ...(handlers.rtcPolyfill ? { rtcPolyfill: handlers.rtcPolyfill as never } : {}),
+    },
+    roomId,
+    {
+      // Without this, a relay that refuses the connection fails silently and the
+      // interface sits on "waiting" forever with nothing to tell the organiser.
+      onJoinError: (details: { error?: unknown }) =>
+        handlers.onError(
+          details?.error instanceof Error
+            ? `Could not reach the peer network: ${details.error.message}`
+            : "Could not reach the peer network. This connection may be blocking it.",
+        ),
+    },
+  );
+
+  const action = room.makeAction<string>(SYNC_ACTION);
 
   action.onMessage = (payload) => {
     try {
-      onIncoming(JSON.parse(payload) as EventLog);
+      handlers.onIncoming(JSON.parse(payload) as EventLog);
     } catch {
       // A malformed payload from an unknown peer is ignored rather than allowed
       // to take down the organiser's tab.
@@ -64,11 +92,11 @@ async function openSession(
   const count = () => Object.keys(room.getPeers()).length;
 
   room.onPeerJoin = () => {
-    onPeerCount(count());
+    handlers.onPeerCount(count());
     // Whoever arrives gets everything we have; merging sorts out the rest.
-    void action.send(JSON.stringify(readLog()));
+    void action.send(JSON.stringify(handlers.readLog()));
   };
-  room.onPeerLeave = () => onPeerCount(count());
+  room.onPeerLeave = () => handlers.onPeerCount(count());
 
   return {
     leave: () => void room.leave(),
@@ -94,12 +122,15 @@ export function usePeers(tournamentId: string, store: TournamentStore): PeerStat
     setStatus("connecting");
     setError(null);
 
-    openSession(
-      tournamentId,
-      () => logRef.current,
-      (incoming) => absorb(mergeLogs([], incoming)),
-      setCount,
-    )
+    openSession(tournamentId, {
+      readLog: () => logRef.current,
+      onIncoming: (incoming) => absorb(mergeLogs([], incoming)),
+      onPeerCount: setCount,
+      onError: (message) => {
+        setStatus("unavailable");
+        setError(message);
+      },
+    })
       .then((opened) => {
         session.current = opened;
         setStatus("live");

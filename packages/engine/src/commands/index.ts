@@ -206,6 +206,7 @@ function buildStageMatches(
         seeding: config.seeding,
         consolation: config.consolation,
         grandFinalReset: config.grandFinalReset,
+        playGrandFinal: config.playGrandFinal,
         rng,
         hasHomeSide,
       });
@@ -359,7 +360,7 @@ export function advanceStage(state: TournamentState, stageId: StageId): DomainEv
     return swissRoundEvents(state, config, runtime.entrantIds, runtime.groups, runtime.roundsGenerated);
   }
 
-  if (config.kind === "double_elimination" && config.grandFinalReset) {
+  if (config.kind === "double_elimination" && config.grandFinalReset && config.playGrandFinal) {
     return grandFinalResetEvents(state, stageId);
   }
 
@@ -398,7 +399,7 @@ export function isStageComplete(state: TournamentState, stageId: StageId): boole
     return runtime.roundsGenerated >= swissRoundTarget(config, runtime.entrantIds.length);
   }
   if (config.kind === "ladder") return false; // A ladder has no end.
-  if (config.kind === "double_elimination" && config.grandFinalReset) {
+  if (config.kind === "double_elimination" && config.grandFinalReset && config.playGrandFinal) {
     return grandFinalResetEvents(state, stageId).length === 0;
   }
 

@@ -276,7 +276,7 @@ export function buildSingleElimination(options: EliminationOptions): Match[] {
 }
 
 export function buildDoubleElimination(
-  options: EliminationOptions & { grandFinalReset: boolean },
+  options: EliminationOptions & { grandFinalReset: boolean; playGrandFinal?: boolean },
 ): Match[] {
   const main = buildMainBracket(options);
   if (main.length === 0) return main;
@@ -288,6 +288,13 @@ export function buildDoubleElimination(
   const upperFinal = main[main.length - 1];
   const lowerFinal = lower[lower.length - 1];
   if (!upperFinal || !lowerFinal) return main;
+
+  const extraMatches: Match[] =
+    options.consolation === "third_place" ? buildThirdPlace(options, size) : [];
+
+  // A poule takes its top two and stops: both survivors qualify, so a final
+  // between them would settle nothing.
+  if (options.playGrandFinal === false) return [...main, ...lower, ...extraMatches];
 
   // Side 0 is the unbeaten entrant, side 1 the one who came up through the
   // lower bracket. `advanceStage` relies on that order to decide whether a
@@ -303,10 +310,7 @@ export function buildDoubleElimination(
     label: "Grand final",
   });
 
-  const extra: Match[] =
-    options.consolation === "third_place" ? buildThirdPlace(options, size) : [];
-
-  return [...main, ...lower, grandFinal, ...extra];
+  return [...main, ...lower, grandFinal, ...extraMatches];
 }
 
 /**

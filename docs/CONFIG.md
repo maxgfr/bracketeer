@@ -59,7 +59,7 @@ qualifiers to the next.
 | `kind` | Notes |
 |---|---|
 | `single_elimination` | `seeding`, `consolation` |
-| `double_elimination` | `grandFinalReset` — must the unbeaten finalist be beaten twice? |
+| `double_elimination` | `grandFinalReset` — must the unbeaten finalist be beaten twice? `playGrandFinal: false` turns it into a pétanque *poule*, where both survivors qualify and there is nothing left for a final to settle |
 | `round_robin` | `legs` (2 for home and away), `mirrorLegs` |
 | `swiss` | `rounds` (`null` derives `ceil(log2(n))`) |
 | `groups` | `groupCount`, `groupSize`, `distribution`, and an `inner` stage each group plays |
