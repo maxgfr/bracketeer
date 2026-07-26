@@ -12,7 +12,7 @@
  */
 
 import type { Consolation, Seeding } from "../domain/config.js";
-import type { EntrantId, Match, MatchId, StageId } from "../domain/entities.js";
+import type { EntrantId, Match, StageId } from "../domain/entities.js";
 import { bracketSize, seedIntoBracket } from "../pairing/seeding.js";
 import type { Rng } from "../util/rng.js";
 import {
@@ -335,9 +335,4 @@ export function grandFinalResetMatch(
     ],
     label: "Grand final (reset)",
   } satisfies MatchDraft);
-}
-
-/** Every match id an elimination stage will ever contain, for progress reporting. */
-export function eliminationMatchIds(matches: readonly Match[]): MatchId[] {
-  return matches.map((m) => m.id);
 }

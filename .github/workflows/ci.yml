@@ -26,5 +26,10 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # The engine is the part that has to be right: a wrong bracket is
+      # discovered by twenty people standing on gravel, not by a stack trace.
+      - name: Engine coverage
+        run: pnpm --filter @bracketeer/engine test:coverage
+
       - name: Build
         run: pnpm build
