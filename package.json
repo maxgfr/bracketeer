@@ -12,7 +12,10 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "brace-expansion": "^5.0.8"
+    }
   },
   "scripts": {
     "dev": "pnpm --filter @bracketeer/web dev",

@@ -14,7 +14,7 @@ import {
 
 } from "@bracketeer/engine";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { NavLink, Route, Routes, useLocation, useParams } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Notice } from "../components/Sheet.js";
 import { decode } from "../lib/codec.js";

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { loadTheme, saveTheme, type ThemeChoice } from "../lib/storage.js";
 import { Label } from "./Sheet.js";
 

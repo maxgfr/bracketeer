@@ -8,7 +8,7 @@
 
 import { overallStandings, replay, stageStandings, type EventLog } from "@bracketeer/engine";
 import { useMemo } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router";
 import { StandingsTable } from "../components/StandingsTable.js";
 import { Figure, Label, Section } from "../components/Sheet.js";
 import { decode } from "../lib/codec.js";

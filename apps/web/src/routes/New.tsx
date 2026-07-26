@@ -9,7 +9,7 @@
 import { addEntrant, createTournament, parseConfig } from "@bracketeer/engine";
 import { appendEvent, type EventEnvelope } from "@bracketeer/engine";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
 import { EXAMPLES } from "../lib/examples.js";

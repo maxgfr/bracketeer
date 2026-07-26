@@ -7,7 +7,7 @@
 
 import { replay } from "@bracketeer/engine";
 import { useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Empty, Figure, Label, Notice, Row, Section } from "../components/Sheet.js";
 import { decode } from "../lib/codec.js";

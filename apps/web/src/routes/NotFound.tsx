@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 
 export function NotFound() {
