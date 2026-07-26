@@ -19,11 +19,19 @@
 
 export const VERSION = "0.1.0";
 
+export * from "./commands/index.js";
 export * from "./domain/config.js";
 export * from "./domain/entities.js";
 export * from "./events/types.js";
 export * from "./events/reducer.js";
 export * from "./scoring/normalize.js";
+export * from "./formats/builders.js";
+export * from "./formats/elimination.js";
+export * from "./formats/groups.js";
+export * from "./formats/ladder.js";
+export * from "./formats/roundRobin.js";
+export * from "./formats/swiss.js";
 export * from "./pairing/index.js";
+export * from "./rating/index.js";
 export * from "./standings/index.js";
 export * from "./util/rng.js";

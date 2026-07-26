@@ -224,6 +224,25 @@ describe("bracket propagation", () => {
     expect(state.matches.find((m) => m.id === "f")?.sides[0]?.entrantId).toBeNull();
   });
 
+  it("does not retire a fixture whose feeders are still settling", () => {
+    // Regression: the final was being voided during propagation because the
+    // semi-finals held results while their own slots were still being filled
+    // from round one. A slot only counts as permanently empty once occupants
+    // have converged.
+    const state = replay(
+      logOf("alice", [
+        ...setup,
+        { type: "result_reported", matchId: "s1", result: { kind: "points", scores: [13, 7] } },
+        { type: "result_reported", matchId: "s2", result: { kind: "points", scores: [5, 13] } },
+      ]),
+    );
+
+    const final = state.matches.find((m) => m.id === "f");
+    expect(final?.status).toBe("ready");
+    expect(final?.sides.map((s) => s.entrantId)).toEqual(["a", "d"]);
+    expect(state.matches.every((m) => m.status !== "void")).toBe(true);
+  });
+
   it("discards a round that has not been played", () => {
     const state = replay(
       logOf("alice", [...setup, { type: "round_discarded", stageId: "main", roundIndex: 1 }]),

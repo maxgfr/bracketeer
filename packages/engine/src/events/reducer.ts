@@ -211,27 +211,53 @@ function propagate(state: TournamentState): TournamentState {
   const config: TournamentConfig = state.config;
   let matches = state.matches;
 
-  for (let pass = 0; pass <= matches.length; pass += 1) {
+  /**
+   * One sweep. `strict` controls whether a settled feeder that produced nobody
+   * is treated as permanently empty.
+   *
+   * That distinction matters: mid-convergence, a feeder can hold a result while
+   * its own slots are still being filled in from further up the bracket. Read
+   * strictly at that moment, a semi-final would look like it had produced no
+   * winner, and the final would be retired before anybody had played it.
+   */
+  const sweep = (strict: boolean): boolean => {
     const byId = new Map(matches.map((m) => [m.id, m]));
     let changed = false;
 
-    const next = matches.map((match): Match => {
+    matches = matches.map((match): Match => {
       if (match.status === "void") return match;
 
-      const sides = match.sides.map((side): Side => {
+      const permanentlyEmpty: boolean[] = [];
+
+      const sides = match.sides.map((side, index): Side => {
         // Qualifier slots are filled when the next stage starts, from the
         // previous stage's final standings, so there is nothing to propagate.
-        if (!side.source || side.source.from === "qualifier") return side;
+        if (!side.source || side.source.from === "qualifier") {
+          permanentlyEmpty[index] = side.entrantId === null && !side.source;
+          return side;
+        }
+
         const feeder = byId.get(side.source.matchId);
-        if (!feeder) return side.entrantId === null ? side : { ...side, entrantId: null };
+        if (!feeder) {
+          permanentlyEmpty[index] = true;
+          return side.entrantId === null ? side : { ...side, entrantId: null };
+        }
+
         const resolved =
           side.source.from === "winner"
             ? winnerEntrantId(feeder, config.score)
             : loserEntrantId(feeder, config.score);
+
+        const settled =
+          feeder.status === "bye" || feeder.status === "void" || feeder.result !== null;
+
+        permanentlyEmpty[index] =
+          resolved === null && (feeder.status === "void" || (strict && settled));
+
         return side.entrantId === resolved ? side : { ...side, entrantId: resolved };
       });
 
-      const status = deriveStatus(match, sides);
+      const status = deriveStatus(match, sides, permanentlyEmpty, strict);
       const sidesChanged = sides.some((s, i) => s !== match.sides[i]);
       if (!sidesChanged && status === match.status) return match;
 
@@ -239,24 +265,35 @@ function propagate(state: TournamentState): TournamentState {
       return { ...match, sides, status };
     });
 
-    matches = next;
-    if (!changed) break;
-  }
+    return changed;
+  };
+
+  // Let occupants settle first, then allow the terminal conclusions.
+  const limit = matches.length * 2 + 4;
+  for (let pass = 0; pass < limit && sweep(false); pass += 1);
+  for (let pass = 0; pass < limit && sweep(true); pass += 1);
 
   return matches === state.matches ? state : { ...state, matches };
 }
 
-function deriveStatus(match: Match, sides: readonly Side[]): MatchStatus {
+function deriveStatus(
+  match: Match,
+  sides: readonly Side[],
+  permanentlyEmpty: readonly boolean[],
+  strict: boolean,
+): MatchStatus {
   if (match.status === "void") return "void";
   if (match.result !== null) return "complete";
 
-  const filled = sides.filter((s) => s.entrantId !== null);
-  // A slot with no occupant and nothing feeding it will never be filled: this
-  // fixture is a walkover for whoever is present.
-  const permanentlyEmpty = sides.filter((s) => s.entrantId === null && s.source === null);
+  const filled = sides.filter((s) => s.entrantId !== null).length;
+  const empty = permanentlyEmpty.filter(Boolean).length;
 
-  if (filled.length === 1 && permanentlyEmpty.length === sides.length - 1) return "bye";
-  if (filled.length === sides.length) return "ready";
+  if (filled === sides.length) return "ready";
+  // Exactly one entrant, and every other seat is permanently vacant: a walkover.
+  if (filled === 1 && empty === sides.length - 1) return "bye";
+  // Nobody is coming at all — an artefact of a bye feeding a bye. Only concluded
+  // once occupants have settled, since it cannot be taken back.
+  if (strict && filled === 0 && empty === sides.length) return "void";
   return "pending";
 }
 
