@@ -168,7 +168,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 934 tests: 279 engine · 380 presets · 137 cli · 138 app
+pnpm test         # 941 tests: 279 engine · 380 presets · 144 cli · 138 app
 pnpm typecheck
 pnpm build
 

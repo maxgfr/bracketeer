@@ -81,6 +81,42 @@ jobs:
       # The trusted publisher on npmjs.com is keyed to the repository *and the
       # workflow filename*, so this file cannot be renamed without updating it.
       - name: Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm release
+
+      # semantic-release pushes the tag and the version commit *before* it
+      # publishes, so a publish that fails leaves the repository claiming a
+      # version the registry has never heard of. This undoes exactly that, and
+      # only that: if the version did reach npm, the failure was somewhere
+      # harmless afterwards and the tag must stay.
+      - name: Undo a tag whose version never reached npm
+        if: failure() && steps.release.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/cli/package.json').version")
+          tag="v$version"
+
+          if ! git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "No $tag was created — nothing to undo."
+            exit 0
+          fi
+
+          if npm view "bracketeer-cli@$version" version >/dev/null 2>&1; then
+            echo "$version is on npm; the tag is correct and stays."
+            exit 0
+          fi
+
+          echo "$version was tagged but never published. Removing $tag."
+          git push --delete origin "$tag"
+          git tag -d "$tag" || true
+
+          # Put the version back so the next run computes the same number and
+          # publishes it for real, rather than skipping it as already released.
+          if git log -1 --pretty=%s | grep -q "^chore(release): $version"; then
+            git revert --no-edit HEAD
+            git push origin HEAD:main
+          fi

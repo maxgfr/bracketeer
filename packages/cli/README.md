@@ -75,6 +75,10 @@ run the event.
 `--package` is needed because this package ships more than one binary and npx would
 otherwise run the CLI.
 
+The MCP SDK is bundled into that binary rather than declared as a dependency, so
+installing this package for the library does not drag a server framework in with
+it: `bracketeer-cli` depends on `zod` and nothing else.
+
 ## For agents
 
 There is a skill that teaches an agent to drive this:

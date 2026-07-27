@@ -35,18 +35,16 @@ the browser suite, and only then publishes to npm and opens a GitHub release.
 Nothing is published by hand — authentication is npm trusted publishing over
 OIDC, so there is no token to leak or rotate.
 
-**If a release fails after the tag is pushed.** semantic-release creates and
-pushes the tag before it publishes, so a publish that fails leaves a repository
-claiming a version the registry has never heard of. The recovery is to delete
-the tag, put the version back, and let the next run compute it again:
-
-```bash
-git push --delete origin vX.Y.Z && git tag -d vX.Y.Z
-git revert <the chore(release) commit>
-```
+**If a release fails after the tag is pushed**, the workflow cleans up after
+itself. semantic-release creates and pushes the tag before it publishes, so a
+publish that fails would otherwise leave the repository claiming a version the
+registry has never heard of. A failure step checks npm and acts only on the case
+that is actually wrong: if the version is not there, it deletes the tag and
+reverts the version commit so the next run publishes that number for real; if it
+*is* there, the failure was somewhere harmless afterwards and the tag stays.
 
 `verifyConditions` catches authentication problems before the tag exists, which
-is the common case. What it cannot catch is the registry failing mid-publish.
+is the common case and costs nothing to recover from.
 
 ## Before you add a sport
 

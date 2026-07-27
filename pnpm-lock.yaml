@@ -111,9 +111,6 @@ importers:
 
   packages/cli:
     dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.12.0
-        version: 1.29.0(zod@3.25.76)
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -124,6 +121,9 @@ importers:
       '@bracketeer/presets':
         specifier: workspace:*
         version: link:../presets
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.12.0
+        version: 1.29.0(zod@3.25.76)
       '@types/node':
         specifier: ^22.13.1
         version: 22.20.1

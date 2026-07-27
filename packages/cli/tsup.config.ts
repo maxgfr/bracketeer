@@ -26,7 +26,18 @@ const define = { __VERSION__: JSON.stringify(version) };
  * The MCP SDK is external because it is a real runtime dependency with its own
  * resolution behaviour, and only the server entry touches it.
  */
-const external = ["zod", "@modelcontextprotocol/sdk"];
+/**
+ * Only `zod` stays external.
+ *
+ * It has to: a schema built by a bundled copy fails `instanceof` against a
+ * consumer's own zod, and the engine's config contract is zod schemas.
+ *
+ * The MCP SDK used to be external too, which made it a hard dependency of the
+ * package — so anybody installing this for the *library* also pulled down a
+ * server framework they will never call. It is bundled into the one binary that
+ * uses it instead, and `bracketeer-cli` now has exactly one dependency.
+ */
+const external = ["zod"];
 
 /**
  * The workspace packages must be *inlined*, types included.
