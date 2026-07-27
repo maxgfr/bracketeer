@@ -35,6 +35,16 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
+      # The runner's Node 22 ships npm 10, which predates trusted publishing.
+      # semantic-release exchanges the OIDC token itself and succeeds, then hands
+      # off to `npm publish` — which, on npm 10, does not know what to do with the
+      # credential and stops at ENEEDAUTH. That failure lands *after* the tag and
+      # the version commit are pushed, so it leaves a release nobody can install.
+      - name: Use an npm that understands trusted publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
       - run: pnpm install --frozen-lockfile
 
       # Nothing gets published that would not have passed CI. The build runs
