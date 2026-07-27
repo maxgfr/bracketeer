@@ -10,7 +10,20 @@
  * own resolution behaviour; npm installs it beside the binary.
  */
 
+import { readFileSync } from "node:fs";
 import { build } from "esbuild";
+
+/**
+ * The version is read here and substituted in, rather than written in the
+ * source. Releases are cut by semantic-release, which rewrites package.json and
+ * nothing else — so a version typed into a `.ts` file is a version that is wrong
+ * from the first release onwards, and `bracketeer version` would quietly report
+ * the number somebody last remembered to update by hand.
+ *
+ * This runs after the bump (see `prepareCmd` in .releaserc.json), so the binary
+ * carries the number actually being published.
+ */
+const { version } = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8"));
 
 const shared = {
   bundle: true,
@@ -18,6 +31,7 @@ const shared = {
   platform: "node",
   target: "node20",
   external: ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/*", "zod"],
+  define: { __VERSION__: JSON.stringify(version) },
   banner: { js: "#!/usr/bin/env node" },
   logLevel: "warning",
 };

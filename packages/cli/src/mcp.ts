@@ -16,10 +16,11 @@ import { readShape } from "@bracketeer/engine";
 import { z } from "zod";
 import * as ops from "./ops.js";
 import { list, load, randomId, randomSeed, save } from "./store.js";
+import { VERSION } from "./version.js";
 
 const ACTOR = process.env.BRACKETEER_ACTOR ?? "mcp";
 
-const server = new McpServer({ name: "bracketeer", version: "0.1.0" });
+const server = new McpServer({ name: "bracketeer", version: VERSION });
 
 /** Every tool answers with JSON, because the caller is a model, not a terminal. */
 function reply(value: unknown) {

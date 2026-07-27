@@ -1,0 +1,3 @@
+# The commit message decides the next version number, so it is checked before
+# it exists rather than after it has already shaped a release.
+pnpm exec commitlint --edit "$1"

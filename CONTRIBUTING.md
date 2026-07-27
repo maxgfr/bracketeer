@@ -10,6 +10,30 @@ pnpm typecheck
 pnpm build
 ```
 
+## Commit messages decide the version
+
+Releases are cut automatically from the commit history, so the message is not
+paperwork — it is the input that picks the next version number. A commit-msg hook
+checks it, and CI checks it again on pull requests.
+
+```
+feat: draw a bracket for the losers' side       → minor  0.2.0
+fix: stop a bye counting as a win               → patch  0.1.1
+feat!: rename the --for flag to --audience      → major  1.0.0
+docs: explain the pairing constraints           → no release
+```
+
+Types that release nothing — `docs`, `chore`, `refactor`, `test`, `style`,
+`build`, `ci`, `perf` — are the right answer for a change nobody installing the
+package would notice. A breaking change is a `!` after the type, or a
+`BREAKING CHANGE:` footer explaining what somebody has to do differently.
+
+The scope is optional and free-form; `feat(cli):` and `fix(engine):` read well.
+
+Merging to `main` runs typecheck, tests, both coverage gates and the build, and
+only then publishes to npm and opens a GitHub release. Nothing is published by
+hand.
+
 ## Before you add a sport
 
 You probably do not need to. If a format cannot be expressed by composing the six

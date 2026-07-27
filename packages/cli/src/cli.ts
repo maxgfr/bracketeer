@@ -13,8 +13,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fromJsonFile, readShape, type Audience, type TournamentConfigInput } from "@bracketeer/engine";
 import * as ops from "./ops.js";
 import { list, load, pathFor, randomId, randomSeed, save } from "./store.js";
-
-const VERSION = "0.1.0";
+import { VERSION } from "./version.js";
 
 interface Args {
   command: string;

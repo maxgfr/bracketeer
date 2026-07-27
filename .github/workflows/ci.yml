@@ -6,6 +6,33 @@ on:
   pull_request:
 
 jobs:
+  # Commit messages decide the next version number, so a message that says
+  # nothing releases nothing — silently. Better to fail here than to wonder
+  # later why a fix never shipped.
+  commits:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint commit messages
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
   check:
     runs-on: ubuntu-latest
     steps:

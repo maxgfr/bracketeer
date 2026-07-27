@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One release at a time. Two runs racing would both compute the same next
+# version from the same tag, and the second would fail on a tag that exists.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tags, the GitHub release, and the version bump commit
+      issues: write # semantic-release comments on the issues a release closes
+      pull-requests: write
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # semantic-release reads the history back to the last tag to work out
+          # what changed, so a shallow clone would make every release the first.
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # Nothing gets published that would not have passed CI. The build runs
+      # again inside the release, after the version has been written.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Engine coverage
+        run: pnpm --filter @bracketeer/engine test:coverage
+
+      - name: App coverage
+        run: pnpm --filter @bracketeer/web test:coverage
+
+      - name: Build the site
+        run: pnpm build
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Must be an npm **automation** token: this account has 2FA on, and
+          # any other token type will stop and ask for a one-time password that
+          # nothing here can answer.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+        run: pnpm release
