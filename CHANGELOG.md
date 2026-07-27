@@ -2,6 +2,13 @@
 
 What changed in each release, generated from the commit messages.
 
+## [0.2.1](https://github.com/maxgfr/bracketeer/compare/v0.2.0...v0.2.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* stop the library dragging in a server framework ([281f6d7](https://github.com/maxgfr/bracketeer/commit/281f6d72148f62a01e7e4e144ce1eeaebd3e7b82))
+
 # [0.2.0](https://github.com/maxgfr/bracketeer/compare/v0.1.0...v0.2.0) (2026-07-27)
 
 
