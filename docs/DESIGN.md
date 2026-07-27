@@ -118,9 +118,17 @@ components and catch the wiring that engine unit tests cannot.
 
 ## Honest limits
 
-- **A shared link grants write access.** Anyone who opens it and joins can enter
-  scores; there is no separate spectator mode for live sync. The embed route is
-  the read-only one, and the app says so where the link is copied.
+- **Private means absent, not protected.** With no server there is no login, so
+  a field marked private is *removed* from the watch link rather than hidden
+  inside it — values and definitions both. What this cannot do is stop somebody
+  holding a watch link from editing their own copy on their own device; nothing
+  without a server can, and it changes nothing for anybody else, because peers
+  refuse changes that do not carry the organiser key.
+- **The organiser key is a shared secret, not authentication.** It is random and
+  kept on the device, never derived from the tournament id — an id travels in
+  every link, so anything computed from it could be recomputed by exactly the
+  people it excludes. It stops the wrong link being used by accident, which is
+  the failure that actually happens.
 - **Peer-to-peer sync depends on infrastructure we do not control.** Devices meet
   through public relays, and it only works while at least one participant has the
   page open. Some networks block it. The app says so on the page rather than in a

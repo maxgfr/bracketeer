@@ -15,7 +15,7 @@ import { ShapeDiagram } from "../components/ShapeDiagram.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
 import { CATEGORIES, examplesIn, EXAMPLES } from "../lib/examples.js";
 import { numberedName, suggestName } from "../lib/names.js";
-import { SPORTS } from "../lib/sports.js";
+import { ALL_FORMATS, SPORTS } from "../lib/sports.js";
 import { actorId, listTournaments, randomId, randomSeed, saveLog } from "../lib/storage.js";
 
 export function NewTournament() {
@@ -32,8 +32,11 @@ export function NewTournament() {
   /** Whichever was picked, reduced to the two things creation needs. */
   const chosen = useMemo(() => {
     if (choice.from === "sport") {
-      const sport = SPORTS.find((s) => s.id === choice.id);
-      return sport ? { name: sport.name, config: sport.config } : null;
+      const format = ALL_FORMATS.find((f) => f.id === choice.id);
+      const sport = SPORTS.find((s) => s.formats.some((f) => f.id === choice.id));
+      return format && sport
+        ? { name: `${sport.name} — ${format.name}`, config: format.config }
+        : null;
     }
     const shape = EXAMPLES.find((e) => e.id === choice.id);
     return shape ? { name: shape.name, config: shape.config } : null;
@@ -215,59 +218,67 @@ export function NewTournament() {
           </div>
         </Section>
 
-        <Section label="Or start from a sport" meta={`${SPORTS.length} presets`}>
+        <Section label="Or start from a sport" meta={`${SPORTS.length} sports`}>
           <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-            None of these is a mode. Each one is a shape from above with the scoring and tiebreaks
-            already filled in, because typing a points system in from memory is a chore. Every one
-            says which shape it is, and every setting is editable afterwards — so a sport that is
-            missing from this list is a few settings away from one that is here.
+            None of these is a mode. Each format is a shape from above with the scoring and
+            tiebreaks already filled in, because typing a points system in from memory is a chore.
+            Every one says which shape it is, and every setting is editable afterwards.
           </p>
 
-          <div className="grid gap-x-6 sm:grid-cols-2">
-            {SPORTS.map((sport) => {
-              const selected = choice.from === "sport" && sport.id === choice.id;
-              return (
-                <label
-                  key={sport.id}
-                  className={`border-rule flex cursor-pointer items-start gap-3 border-b py-2.5 transition-colors ${
-                    selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
-                  } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
-                >
-                  <input
-                    type="radio"
-                    name="example"
-                    value={sport.id}
-                    checked={selected}
-                    onChange={() => setChoice({ from: "sport", id: sport.id })}
-                    className="sr-only"
-                  />
-                  <span
-                    aria-hidden
-                    className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
-                      selected ? "bg-signal" : "border-rule-strong border opacity-40"
-                    }`}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={`block text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}
-                    >
-                      {sport.name}
-                    </span>
-                    <span className="text-ink-2 mt-0.5 block text-xs leading-snug">
-                      {sport.fills}
-                    </span>
-                    {/* The relationship stays visible: this *is* that shape. */}
-                    <span className="text-ink-3 mt-0.5 block text-xs">
-                      Shape: {sport.basedOn}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+          <div className="space-y-6">
+            {SPORTS.map((sport) => (
+              <div key={sport.id}>
+                <h3 className="sheet-label text-ink">{sport.name}</h3>
+                {/* The rules that hold across every way of running it. */}
+                <p className="text-ink-2 mt-1 max-w-[68ch] text-sm leading-snug">{sport.note}</p>
+
+                <div className="mt-2 grid gap-x-6 sm:grid-cols-2">
+                  {sport.formats.map((format) => {
+                    const selected = choice.from === "sport" && format.id === choice.id;
+                    return (
+                      <label
+                        key={format.id}
+                        className={`border-rule flex cursor-pointer items-start gap-3 border-b py-2.5 transition-colors ${
+                          selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
+                        } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
+                      >
+                        <input
+                          type="radio"
+                          name="example"
+                          value={format.id}
+                          checked={selected}
+                          onChange={() => setChoice({ from: "sport", id: format.id })}
+                          className="sr-only"
+                        />
+                        <span
+                          aria-hidden
+                          className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
+                            selected ? "bg-signal" : "border-rule-strong border opacity-40"
+                          }`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={`block text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}
+                          >
+                            {format.name}
+                          </span>
+                          <span className="text-ink-2 mt-0.5 block text-xs leading-snug">
+                            {format.fills}
+                          </span>
+                          <span className="text-ink-3 mt-0.5 block text-xs">
+                            Shape: {format.basedOn}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {choice.from === "sport" && chosen ? (
-            <div className="border-rule bg-paper-raised mt-4 border px-3 py-2">
+            <div className="border-rule bg-paper-raised mt-5 border px-3 py-2">
               <Label>Structure</Label>
               <ShapeDiagram config={chosen.config} />
             </div>

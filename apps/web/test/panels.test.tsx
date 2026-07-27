@@ -19,7 +19,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { App } from "../src/App.js";
-import { encode } from "../src/lib/codec.js";
+import { decode, encode } from "../src/lib/codec.js";
 import { PeerBar, type PeerState } from "../src/sync/PeerBar.js";
 
 /** Write a tournament into storage without rendering anything. */
@@ -64,6 +64,19 @@ function open(
 }
 
 const four = ["Ana", "Ben", "Cleo", "Dan"];
+
+/** Build a tournament log without writing it anywhere. */
+function seedLog(config: TournamentConfigInput, names: string[]) {
+  seed(config, names);
+  const log = JSON.parse(localStorage.getItem("bracketeer.log.demo") as string);
+  return log as EventEnvelope[];
+}
+
+/** Read the tournament back out of a share link, as the receiving device does. */
+function decodePayload(url: string) {
+  const data = /[?&]d=([^&]+)/.exec(url)?.[1] ?? "";
+  return decode(data);
+}
 
 describe("recording a result, in every shape the rules can take", () => {
   it("takes a score for each side", async () => {
@@ -271,31 +284,49 @@ describe("the calendar", () => {
   });
 });
 
-describe("sharing", () => {
-  it("builds a link that carries the whole tournament", async () => {
+describe("sharing, by who it is for", () => {
+  it("asks who the link is for before giving you one", () => {
+    open({ score: { kind: "points" } }, four, "share");
+
+    expect(screen.getByText(/who is this for/i)).toBeInTheDocument();
+    expect(screen.getByText("Someone watching")).toBeInTheDocument();
+    expect(screen.getByText("Someone helping run it")).toBeInTheDocument();
+  });
+
+  it("gives a watch link by default, with no key in it", () => {
+    open({ score: { kind: "points" } }, four, "share");
+
+    const link = screen.getByLabelText(/watch link/i) as HTMLInputElement;
+    expect(link.value).toContain("#/t/demo?d=");
+    // No key means the holder cannot push changes to anybody.
+    expect(link.value).not.toContain("&k=");
+  });
+
+  it("puts the key in the organiser link, and warns what that means", async () => {
     const user = userEvent.setup();
     open({ score: { kind: "points" } }, four, "share");
 
-    const link = screen.getByLabelText(/share this/i) as HTMLInputElement;
-    expect(link.value).toContain("#/t/demo?d=");
+    await user.click(screen.getByText("Someone helping run it"));
 
-    // The control strip has one too, now that copying the address bar is the
-    // mistake this exists to prevent.
+    const link = (await screen.findByLabelText(/organiser link/i)) as HTMLInputElement;
+    expect(link.value).toContain("&k=");
+    expect(screen.getByText(/lets whoever opens it enter scores/i)).toBeInTheDocument();
+  });
+
+  it("copies whichever link is showing", async () => {
+    const user = userEvent.setup();
+    open({ score: { kind: "points" } }, four, "share");
+
     const buttons = screen.getAllByRole("button", { name: /copy link/i });
     await user.click(buttons[buttons.length - 1]!);
     await waitFor(() => expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument());
   });
 
-  it("does not put the live flag on the link until sync is on", () => {
-    open({ score: { kind: "points" } }, four, "share");
-    expect((screen.getByLabelText(/share this/i) as HTMLInputElement).value).not.toContain("live=1");
-  });
-
-  it("downloads the tournament as a file", async () => {
+  it("downloads a file for whichever audience is selected", async () => {
     const user = userEvent.setup();
     open({ score: { kind: "points" } }, four, "share");
 
-    await user.click(screen.getByRole("button", { name: /download the tournament/i }));
+    await user.click(screen.getByRole("button", { name: /download as a file/i }));
     expect(URL.createObjectURL).toHaveBeenCalled();
   });
 
@@ -311,10 +342,76 @@ describe("sharing", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument());
   });
 
-  it("states plainly that live sync depends on somebody else being there", () => {
+  it("states plainly what live depends on", () => {
     open({ score: { kind: "points" } }, four, "share");
     expect(screen.getByText(/no server behind this/i)).toBeInTheDocument();
-    expect(screen.getByText(/only works while at least one participant/i)).toBeInTheDocument();
+    expect(screen.getByText(/only works while at least one of you/i)).toBeInTheDocument();
+  });
+});
+
+describe("private fields", () => {
+  const withPrivate = {
+    score: { kind: "points" as const },
+    entrantFields: [
+      { key: "affiliation", label: "Club" },
+      { key: "phone", label: "Phone", private: true },
+    ],
+  };
+
+  it("leaves a private value out of the watch link entirely", async () => {
+    seed(withPrivate, four, "entrants", { started: false });
+
+    // Put a phone number against somebody.
+    const raw = JSON.parse(localStorage.getItem("bracketeer.log.demo") as string);
+    raw.push({
+      id: "test:99",
+      actor: "test",
+      seq: 99,
+      lamport: 99,
+      at: 1_700_000_009_999,
+      event: { type: "entrant_updated", id: "e0", patch: { meta: { phone: "0612345678" } } },
+    });
+    localStorage.setItem("bracketeer.log.demo", JSON.stringify(raw));
+
+    window.location.hash = "#/t/demo/share";
+    render(<App />);
+
+    const watch = (await screen.findByLabelText(/watch link/i)) as HTMLInputElement;
+    const carried = JSON.stringify(decodePayload(watch.value));
+    expect(carried).not.toContain("0612345678");
+
+    // And says so, rather than leaving the organiser to hope.
+    expect(screen.getByText(/not in this link at all/i)).toBeInTheDocument();
+  });
+
+  it("keeps it in the organiser link, which is the point of having one", async () => {
+    const user = userEvent.setup();
+    seed(withPrivate, four, "entrants", { started: false });
+
+    const raw = JSON.parse(localStorage.getItem("bracketeer.log.demo") as string);
+    raw.push({
+      id: "test:99",
+      actor: "test",
+      seq: 99,
+      lamport: 99,
+      at: 1_700_000_009_999,
+      event: { type: "entrant_updated", id: "e0", patch: { meta: { phone: "0612345678" } } },
+    });
+    localStorage.setItem("bracketeer.log.demo", JSON.stringify(raw));
+
+    window.location.hash = "#/t/demo/share";
+    render(<App />);
+
+    await user.click(screen.getByText("Someone helping run it"));
+    const link = (await screen.findByLabelText(/organiser link/i)) as HTMLInputElement;
+    const carried = JSON.stringify(decodePayload(link.value));
+    expect(carried).toContain("0612345678");
+  });
+
+  it("names the private field where the watch link is described", () => {
+    seed(withPrivate, four, "share");
+    render(<App />);
+    expect(screen.getByText(/phone .*(is|are) removed/i)).toBeInTheDocument();
   });
 });
 
@@ -966,13 +1063,6 @@ describe("opening a shared link when you already have the tournament", () => {
   });
 });
 
-describe("what sharing a link actually grants", () => {
-  it("says that whoever joins can enter scores, not only read them", () => {
-    open({ score: { kind: "points" } }, four, "share");
-    expect(screen.getByText(/can enter scores, not just read them/i)).toBeInTheDocument();
-    expect(screen.getByText(/no separate spectator mode/i)).toBeInTheDocument();
-  });
-});
 
 describe("naming a tournament at creation", () => {
   it("suggests a name, year-stamped, and a different one each press", async () => {
@@ -1026,14 +1116,15 @@ describe("starting from a sport", () => {
     window.location.hash = "#/new";
     render(<App />);
 
-    await user.click(screen.getByText("Rugby union"));
+    // Several sports run a league season; take rugby's.
+    await user.click(screen.getByDisplayValue("rugby-season"));
     fireEvent.change(screen.getByPlaceholderText(/Marie Dubois/), {
       target: { value: "Ana\nBen\nCleo\nDan" },
     });
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Rugby union/),
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/League season/),
     );
     // Two legs of a round robin: everyone meets everyone twice.
     expect(screen.getByText(/round robin/i)).toBeInTheDocument();
@@ -1068,5 +1159,54 @@ describe("getting the link at the moment you need it", () => {
 
     expect(screen.getByText(/address alone carries no tournament/i)).toBeInTheDocument();
     expect(screen.getByText(/rather than using the Copy link button/i)).toBeInTheDocument();
+  });
+});
+
+describe("marking a field private", () => {
+  it("is a checkbox on the field, and it sticks", async () => {
+    const user = userEvent.setup();
+    open(
+      {
+        score: { kind: "points" },
+        entrantFields: [{ key: "phone", label: "Phone" }],
+      },
+      four,
+      "entrants",
+      { started: false },
+    );
+
+    const toggle = screen.getByRole("checkbox");
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+    await waitFor(() => expect(screen.getByRole("checkbox")).toBeChecked());
+  });
+
+  it("says what marking it does", () => {
+    open({ score: { kind: "points" } }, four, "entrants", { started: false });
+    expect(screen.getByText(/not in the watch link at all/i)).toBeInTheDocument();
+  });
+});
+
+describe("who is allowed to push changes", () => {
+  it("treats a watch link as read-only, and hides the organiser's copy button", async () => {
+    const log = seedLog({ score: { kind: "points" } }, four);
+    localStorage.clear();
+
+    window.location.hash = `#/t/watch-only?d=${encode(log)}`;
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    // No key in the link means no pushing, so the control that hands one out
+    // has no business being there.
+    expect(screen.queryByRole("button", { name: /copy link/i })).not.toBeInTheDocument();
+  });
+
+  it("treats a tournament made on this device as yours", async () => {
+    seed({ score: { kind: "points" } }, four);
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.getByRole("button", { name: /copy link/i })).toBeInTheDocument();
   });
 });

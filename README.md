@@ -51,8 +51,11 @@ turned a games night into a rated championship. Nothing in the engine noticed.
 
 Bracketeer is a static site on GitHub Pages, so there is nothing to host and nothing to trust.
 
-- **A link** — the tournament's event log is compressed into the URL. A played 16-entrant knockout
-  with a consolation bracket comes to under 4 kB. The link is self-contained and works forever.
+- **Two links** — a **watch** link with private fields stripped out and no key, and an
+  **organiser** link that carries everything and lets that device enter scores. The tournament's
+  event log is compressed into the URL either way.
+  A played 16-entrant knockout with a consolation bracket comes to under 4 kB, and it is
+  self-contained: it works forever, with no server holding a copy.
 - **A file** — JSON export, any time. This is the copy to keep.
 - **Live sync** — several phones can update the same tournament at once, peer to peer. Turn it on
   and the share link carries the invitation, so whoever opens it gets one tap to join.
@@ -78,7 +81,7 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 226 engine tests + 388 app tests
+pnpm test         # 226 engine tests + 498 app tests
 pnpm typecheck
 pnpm build
 ```

@@ -113,6 +113,51 @@ export function randomId(length = 10): string {
   return Array.from(values, (v) => alphabet[v % alphabet.length]).join("");
 }
 
+const KEY_PREFIX = "bracketeer.key.";
+
+/**
+ * The secret that lets a device push changes for a tournament.
+ *
+ * It must be *random*, not derived from the tournament id: the id travels in
+ * every link including the watch one, so anything computed from it could be
+ * recomputed by exactly the people it is meant to exclude. That would be a
+ * password printed on the door.
+ *
+ * So it is generated once, kept on the device that made the tournament, and
+ * handed on only inside an organiser link.
+ */
+export function writeKeyFor(tournamentId: string): string {
+  try {
+    const existing = localStorage.getItem(`${KEY_PREFIX}${tournamentId}`);
+    if (existing) return existing;
+    const created = randomId(16);
+    localStorage.setItem(`${KEY_PREFIX}${tournamentId}`, created);
+    return created;
+  } catch {
+    // Private browsing: the key lives for this tab only, which still lets this
+    // device push and still keeps a watch link from doing so.
+    return randomId(16);
+  }
+}
+
+/** Remember the key that arrived in an organiser link. */
+export function rememberWriteKey(tournamentId: string, key: string): void {
+  try {
+    localStorage.setItem(`${KEY_PREFIX}${tournamentId}`, key);
+  } catch {
+    /* nothing worth interrupting the organiser for */
+  }
+}
+
+/** The key this device already holds, if any, without creating one. */
+export function storedWriteKey(tournamentId: string): string | null {
+  try {
+    return localStorage.getItem(`${KEY_PREFIX}${tournamentId}`);
+  } catch {
+    return null;
+  }
+}
+
 /** A seed for the engine's deterministic draws. */
 export function randomSeed(): number {
   const values = new Uint32Array(1);

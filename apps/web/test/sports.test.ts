@@ -9,58 +9,65 @@ import { parseConfig, safeParseConfig } from "@bracketeer/engine";
 import { describe, expect, it } from "vitest";
 import { EXAMPLES } from "../src/lib/examples.js";
 import { readShape, sampleCompletes } from "../src/lib/shape.js";
-import { findSport, SPORTS } from "../src/lib/sports.js";
+import { ALL_FORMATS, findFormat, findSport, SPORTS } from "../src/lib/sports.js";
 
 describe("sport presets", () => {
-  it.each(SPORTS.map((s) => [s.id, s] as const))("%s is a valid rule set", (_id, sport) => {
-    const result = safeParseConfig(sport.config);
+  it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s is a valid rule set", (_id, format) => {
+    const result = safeParseConfig(format.config);
     expect(result.success, JSON.stringify(result.error?.issues, null, 2)).toBe(true);
   });
 
-  it.each(SPORTS.map((s) => [s.id, s] as const))("%s names the shape it is", (_id, sport) => {
+  it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s names the shape it is", (_id, format) => {
     // The relationship has to stay visible, or these become modes by stealth.
-    expect(EXAMPLES.some((e) => e.name === sport.basedOn), `${sport.basedOn} is not a shape`).toBe(
+    expect(EXAMPLES.some((e) => e.name === format.basedOn), `${format.basedOn} is not a shape`).toBe(
       true,
     );
   });
 
-  it.each(SPORTS.map((s) => [s.id, s] as const))("%s plays to the end", (_id, sport) => {
-    const parsed = parseConfig(sport.config);
+  it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s plays to the end", (_id, format) => {
+    const parsed = parseConfig(format.config);
     if (parsed.stages.every((s) => s.kind === "ladder")) return;
-    expect(sampleCompletes(sport.config)).toBe(true);
+    expect(sampleCompletes(format.config)).toBe(true);
   });
 
-  it.each(SPORTS.map((s) => [s.id, s] as const))("%s can be drawn", (_id, sport) => {
-    const shape = readShape(sport.config);
+  it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s can be drawn", (_id, format) => {
+    const shape = readShape(format.config);
     expect(shape.stages.length).toBeGreaterThan(0);
   });
 
   it("really is the shape it claims, structurally", () => {
     // Same structure as the shape it names, since only the scoring differs.
-    for (const sport of SPORTS) {
-      const shape = EXAMPLES.find((e) => e.name === sport.basedOn);
+    for (const entry of ALL_FORMATS) {
+      const shape = EXAMPLES.find((e) => e.name === entry.basedOn);
       if (!shape) continue;
 
       const kinds = (config: Parameters<typeof parseConfig>[0]) =>
-        parseConfig(config).stages.map((s) => s.kind);
+        parseConfig(config).stages.map((stage) => stage.kind);
 
-      expect(kinds(sport.config), `${sport.name} vs ${sport.basedOn}`).toEqual(kinds(shape.config));
+      expect(kinds(entry.config), `${entry.name} vs ${entry.basedOn}`).toEqual(
+        kinds(shape.config),
+      );
     }
   });
 
   it("covers every way of scoring, so the list is not all one kind of game", () => {
-    const kinds = new Set(SPORTS.map((s) => parseConfig(s.config).score.kind));
+    const kinds = new Set(ALL_FORMATS.map((entry) => parseConfig(entry.config).score.kind));
     expect(kinds).toEqual(new Set(["points", "sets", "outcome", "placement", "time"]));
   });
 
   it("spans team games, individual games and video games", () => {
-    expect(SPORTS.length).toBeGreaterThanOrEqual(15);
-    expect(SPORTS.some((s) => parseConfig(s.config).entrant.kind === "fixed_team")).toBe(true);
-    expect(SPORTS.some((s) => parseConfig(s.config).match.sidesPerMatch > 2)).toBe(true);
+    expect(SPORTS.length).toBeGreaterThanOrEqual(12);
+    expect(ALL_FORMATS.length).toBeGreaterThanOrEqual(25);
+    expect(
+      ALL_FORMATS.some((entry) => parseConfig(entry.config).entrant.kind === "fixed_team"),
+    ).toBe(true);
+    expect(
+      ALL_FORMATS.some((entry) => parseConfig(entry.config).match.sidesPerMatch > 2),
+    ).toBe(true);
   });
 
   it("gets the rugby bonus points right", () => {
-    const rugby = parseConfig(findSport("rugby")!.config);
+    const rugby = parseConfig(findFormat("rugby-season")!.config);
     expect(rugby.standings.pointsSystem.win).toBe(4);
     expect(rugby.standings.pointsSystem.draw).toBe(2);
 
@@ -70,24 +77,24 @@ describe("sport presets", () => {
   });
 
   it("gets the three-two-one-zero system right", () => {
-    const hockey = parseConfig(findSport("ice-hockey")!.config).standings.pointsSystem;
+    const hockey = parseConfig(findFormat("ice-hockey-season")!.config).standings.pointsSystem;
     expect([hockey.win, hockey.overtimeWin, hockey.overtimeLoss, hockey.loss]).toEqual([3, 2, 1, 0]);
   });
 
   it("gets the set targets right", () => {
     const setTarget = (id: string) => {
-      const score = parseConfig(findSport(id)!.config).score;
+      const score = parseConfig(findFormat(id)!.config).score;
       return score.kind === "sets" ? [score.bestOf, score.setTarget, score.setWinBy] : null;
     };
 
-    expect(setTarget("volleyball")).toEqual([5, 25, 2]);
-    expect(setTarget("badminton")).toEqual([3, 21, 2]);
-    expect(setTarget("table-tennis")).toEqual([5, 11, 2]);
-    expect(setTarget("tennis")).toEqual([3, 6, 2]);
+    expect(setTarget("volleyball-league")).toEqual([5, 25, 2]);
+    expect(setTarget("badminton-draw")).toEqual([3, 21, 2]);
+    expect(setTarget("table-tennis-groups")).toEqual([5, 11, 2]);
+    expect(setTarget("tennis-draw")).toEqual([3, 6, 2]);
   });
 
   it("plays pétanque to thirteen, in pairs, with a second draw", () => {
-    const config = parseConfig(findSport("petanque")!.config);
+    const config = parseConfig(findFormat("petanque-poules")!.config);
     expect(config.score.kind === "points" && config.score.target).toBe(13);
     expect(config.entrant.kind === "fixed_team" && config.entrant.teamSize).toBe(2);
 
@@ -99,6 +106,6 @@ describe("sport presets", () => {
 
   it("has unique ids and names", () => {
     expect(new Set(SPORTS.map((s) => s.id)).size).toBe(SPORTS.length);
-    expect(new Set(SPORTS.map((s) => s.name)).size).toBe(SPORTS.length);
+    expect(new Set(ALL_FORMATS.map((f) => f.id)).size).toBe(ALL_FORMATS.length);
   });
 });

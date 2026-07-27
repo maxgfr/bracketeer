@@ -50,6 +50,16 @@ export const SYNC_ACTION = "log";
 
 export interface SessionHandlers {
   readLog: () => EventLog;
+  /**
+   * The tournament's write key, or null on a device holding a watch link.
+   *
+   * Peers attach it to what they send and refuse what arrives without it, so a
+   * watch link can follow along and cannot change anybody else's tournament.
+   * This is a shared secret passed between people who already trust each other,
+   * not authentication — it stops the wrong link being used by accident, which
+   * is the failure that actually happens.
+   */
+  writeKey: string | null;
   onIncoming: (log: EventLog) => void;
   onPeerCount: (count: number) => void;
   onError: (message: string) => void;
@@ -79,10 +89,15 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   );
 
   const action = room.makeAction<string>(SYNC_ACTION);
+  const envelope = (log: EventLog) => JSON.stringify({ k: handlers.writeKey, log });
 
   action.onMessage = (payload) => {
     try {
-      handlers.onIncoming(JSON.parse(payload) as EventLog);
+      const parsed = JSON.parse(payload) as { k?: string | null; log?: EventLog };
+      // Without the key this is somebody reading over your shoulder, not
+      // somebody helping run the tournament.
+      if (!parsed.k || parsed.k !== handlers.writeKey) return;
+      if (Array.isArray(parsed.log)) handlers.onIncoming(parsed.log);
     } catch {
       // A malformed payload from an unknown peer is ignored rather than allowed
       // to take down the organiser's tab.
@@ -94,13 +109,13 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   room.onPeerJoin = () => {
     handlers.onPeerCount(count());
     // Whoever arrives gets everything we have; merging sorts out the rest.
-    void action.send(JSON.stringify(handlers.readLog()));
+    void action.send(envelope(handlers.readLog()));
   };
   room.onPeerLeave = () => handlers.onPeerCount(count());
 
   return {
     leave: () => void room.leave(),
-    broadcast: (log) => void action.send(JSON.stringify(log)),
+    broadcast: (log) => void action.send(envelope(log)),
   };
 }
 
@@ -124,6 +139,7 @@ export function usePeers(tournamentId: string, store: TournamentStore): PeerStat
 
     openSession(tournamentId, {
       readLog: () => logRef.current,
+      writeKey: store.writeKey || null,
       onIncoming: (incoming) => absorb(mergeLogs([], incoming)),
       onPeerCount: setCount,
       onError: (message) => {

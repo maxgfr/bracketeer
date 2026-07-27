@@ -77,7 +77,12 @@ export function TournamentRoute() {
    */
   const [invited] = useState(() => new URLSearchParams(location.search).get("live") === "1");
 
-  const store = useTournament(id, fromLink);
+  /** An organiser link carries the key that lets this device push changes. */
+  const [keyFromLink] = useState(
+    () => new URLSearchParams(location.search).get("k") ?? undefined,
+  );
+
+  const store = useTournament(id, fromLink, keyFromLink);
   const peers = usePeers(id, store);
   const { state } = store;
 
@@ -230,7 +235,7 @@ function ControlStrip({
       ) : null}
       {action.note ? <span className="text-ink-2 text-sm">{action.note}</span> : null}
       <div className="ml-auto flex items-center gap-1">
-        <ShareLinkButton store={store} peers={peers} />
+        {store.canPush ? <ShareLinkButton store={store} peers={peers} /> : null}
         <Button
           variant="quiet"
           onClick={peers.status === "off" || peers.status === "unavailable" ? peers.start : peers.stop}

@@ -18,6 +18,8 @@ const HEIGHT = 96;
 const PAD = 6;
 const COLUMN = 22;
 const GAP = 26;
+/** Beyond this a drawing stops being readable and starts being a texture. */
+const MAX_COLUMNS = 6;
 
 export function ShapeDiagram({
   config,
@@ -45,24 +47,36 @@ export function ShapeDiagram({
   let x = PAD;
 
   return (
-    <svg
-      viewBox={`0 0 ${Math.max(width, 80)} ${HEIGHT}`}
-      className={`text-ink-3 h-24 w-full ${className}`}
-      role="img"
-      aria-label={describe(shape)}
-      preserveAspectRatio="xMinYMid meet"
-    >
-      {blocks.map((block, index) => {
-        const offset = x;
-        x += block.width + GAP;
-        return (
-          <g key={block.stage.id} transform={`translate(${offset} 0)`}>
-            {block.render()}
-            {index < blocks.length - 1 ? <Arrow x={block.width + 7} /> : null}
-          </g>
-        );
-      })}
-    </svg>
+    /*
+      Drawn at a fixed scale, never stretched to fit.
+      
+      Sizing the SVG to its container makes every diagram a different size: a
+      four-round knockout is squeezed thin while a stepladder balloons, and two
+      pictures of the same thing stop being comparable. So a column is always the
+      same number of pixels wide and a rule is always the same weight, and a wide
+      structure simply scrolls.
+    */
+    <div className={`overflow-x-auto ${className}`}>
+      <svg
+        viewBox={`0 0 ${Math.max(width, 80)} ${HEIGHT}`}
+        width={Math.max(width, 80)}
+        height={HEIGHT}
+        className="text-ink-3 block max-w-none"
+        role="img"
+        aria-label={describe(shape)}
+      >
+        {blocks.map((block, index) => {
+          const offset = x;
+          x += block.width + GAP;
+          return (
+            <g key={block.stage.id} transform={`translate(${offset} 0)`}>
+              {block.render()}
+              {index < blocks.length - 1 ? <Arrow x={block.width + 7} /> : null}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -95,7 +109,7 @@ function layoutStage(stage: StageShape): Block {
 
   if (!main) return { stage, width: 30, render: () => <Groups shown={1} total={1} /> };
 
-  const columns = Math.min(main.rounds.length, 6);
+  const columns = Math.min(main.rounds.length, MAX_COLUMNS);
   const width = Math.max(columns * COLUMN, 28);
 
   return {
@@ -113,7 +127,7 @@ function layoutStage(stage: StageShape): Block {
         {extras.length > 0 ? (
           <Bracket
             bracket={extras[0] as BracketShape}
-            columns={Math.min((extras[0] as BracketShape).rounds.length, 6)}
+            columns={Math.min((extras[0] as BracketShape).rounds.length, MAX_COLUMNS)}
             top={HEIGHT * 0.62}
             height={HEIGHT * 0.34}
             sidesPerMatch={stage.sidesPerMatch}

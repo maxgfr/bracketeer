@@ -186,14 +186,35 @@ export function EntrantsPanel({ store }: { store: Store }) {
       <Section label="Custom fields" meta="Club, country, category…">
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
           Fields you add here appear against every entrant, show in the table, and can be used to
-          keep people apart in the draw — pairing has a constraint that avoids matching entrants
-          who share a value.
+          keep people apart in the draw — pairing has a constraint that avoids matching entrants who
+          share a value. Mark one private and it is left out of anything you share publicly: a
+          phone number or a licence number is not in the watch link at all, rather than hidden
+          inside it.
         </p>
         <ul>
           {fields.map((field) => (
-            <li key={field.key} className="border-rule flex items-center gap-3 border-b py-2">
+            <li key={field.key} className="border-rule flex flex-wrap items-center gap-3 border-b py-2">
               <Label>{field.key}</Label>
-              <span className="text-ink-2 flex-1 text-sm">{field.label}</span>
+              <span className="text-ink-2 min-w-24 flex-1 text-sm">{field.label}</span>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={field.private === true}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "config_replaced",
+                      config: {
+                        ...state.config,
+                        entrantFields: fields.map((f) =>
+                          f.key === field.key ? { ...f, private: e.target.checked } : f,
+                        ),
+                      },
+                    })
+                  }
+                  className="border-rule-strong accent-signal size-4"
+                />
+                <Label>Private</Label>
+              </label>
               <Button
                 variant="quiet"
                 onClick={() =>

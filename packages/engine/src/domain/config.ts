@@ -557,7 +557,19 @@ export const tournamentConfigSchema = z.object({
     .default([{ kind: "single_elimination", id: "main" }]),
   /** Custom entrant metadata fields the organiser wants to record and filter on. */
   entrantFields: z
-    .array(z.object({ key: z.string(), label: z.string(), }))
+    .array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        /**
+         * Kept out of anything shared publicly — a phone number, a licence
+         * number, an emergency contact. Without a server this cannot mean
+         * "permission", so it means the value is absent from the public link
+         * rather than hidden inside it.
+         */
+        private: z.boolean().default(false),
+      }),
+    )
     .default([]),
 });
 

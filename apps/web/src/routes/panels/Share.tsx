@@ -1,38 +1,59 @@
 /**
  * Sharing.
  *
- * Three ways out, presented in order of how durable they are rather than how
- * impressive they sound. The link carries the whole tournament and works
- * forever; the file is the backup; live sync is the convenience, and its
- * limitations are stated on the page rather than buried in a README.
+ * One idea, not two. You always share a *link*; live is an option on that link,
+ * and who the link is for decides what it carries. A "Go live" button beside a
+ * separate "Share" button asked the organiser to work out the relationship
+ * between them, and the answer — you cannot go live *instead* of sharing — was
+ * not obvious from either.
+ *
+ * So the question this page asks first is: who is this for?
+ *
+ *   · Somebody watching gets the results with private fields stripped out and
+ *     no key, so they cannot push changes to anybody.
+ *   · Somebody helping run it gets everything, and can enter scores.
  */
 
 import { toJsonFile, urlSizeVerdict } from "@bracketeer/engine";
 import { useMemo, useState } from "react";
 import { Button, Field, inputClass, Notice, Section } from "../../components/Sheet.js";
 import { encode } from "../../lib/codec.js";
+import {
+  entrantsWithPrivateData,
+  hasPrivateValues,
+  privateFieldKeys,
+  redactPrivate,
+} from "../../lib/privacy.js";
 import type { PeerState } from "../../sync/PeerBar.js";
 import { slug } from "./Calendar.js";
 import type { Store } from "../Tournament.js";
 
+type Audience = "watch" | "run";
+
 export function SharePanel({ store, peers }: { store: Store; peers: PeerState }) {
   const { state, log, id } = store;
+  const [audience, setAudience] = useState<Audience>("watch");
   const [copied, setCopied] = useState<string | null>(null);
+
+  const secret = useMemo(() => privateFieldKeys(state.config), [state.config]);
+  const redacted = useMemo(() => redactPrivate(log, secret), [log, secret]);
+  const holdsPrivate = useMemo(() => hasPrivateValues(log, secret), [log, secret]);
+  const affected = useMemo(() => entrantsWithPrivateData(log, secret), [log, secret]);
 
   const encoded = useMemo(() => {
     try {
-      return encode(log);
+      return encode(audience === "watch" ? redacted : log);
     } catch {
       return null;
     }
-  }, [log]);
+  }, [audience, log, redacted]);
 
   const origin = `${window.location.origin}${window.location.pathname}`;
-  // When sync is on, the link says so. Otherwise the person receiving it has no
-  // way of knowing they are supposed to join anything.
-  const liveFlag = peers.status === "live" ? "&live=1" : "";
-  const shareUrl = encoded ? `${origin}#/t/${id}?d=${encoded}${liveFlag}` : "";
-  const embedUrl = encoded ? `${origin}#/embed/${id}?d=${encoded}` : "";
+  const live = peers.status === "live" ? "&live=1" : "";
+  // The key is what a device needs to push changes. A watch link has none.
+  const key = audience === "run" ? `&k=${store.writeKey}` : "";
+  const shareUrl = encoded ? `${origin}#/t/${id}?d=${encoded}${live}${key}` : "";
+  const embedUrl = encoded ? `${origin}#/embed/${id}?d=${encode(redacted)}` : "";
   const verdict = encoded ? urlSizeVerdict(encoded) : "too_long";
 
   const copy = async (value: string, which: string) => {
@@ -45,35 +66,56 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
     }
   };
 
-  const download = () => {
-    const blob = new Blob([toJsonFile(log, new Date().toISOString())], {
+  const download = (whole: boolean) => {
+    const blob = new Blob([toJsonFile(whole ? log : redacted, new Date().toISOString())], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${slug(state.name)}.bracketeer.json`;
+    anchor.download = `${slug(state.name)}${whole ? "" : ".public"}.bracketeer.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <div className="space-y-12">
-      <Section label="A link" meta={encoded ? `${(encoded.length / 1024).toFixed(1)} kB` : undefined}>
-        <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          The whole tournament travels inside this link — there is no server holding a copy, so
-          whoever opens it gets the results exactly as they stand now. Send a fresh link when you
-          want people to see later rounds.
-        </p>
+      <Section
+        label="Who is this for?"
+        meta={encoded ? `${(encoded.length / 1024).toFixed(1)} kB` : undefined}
+      >
+        <div role="radiogroup" aria-label="Who is this for?" className="pt-3">
+          <AudienceChoice
+            value="watch"
+            current={audience}
+            onChange={setAudience}
+            title="Someone watching"
+            detail={
+              secret.length > 0
+                ? `Results, tables and the calendar. ${secret.join(" and ")} ${
+                    secret.length === 1 ? "is" : "are"
+                  } removed, and they cannot enter scores.`
+                : "Results, tables and the calendar. They cannot enter scores."
+            }
+          />
+          <AudienceChoice
+            value="run"
+            current={audience}
+            onChange={setAudience}
+            title="Someone helping run it"
+            detail="Everything, including private fields, and they can enter scores from their own phone."
+          />
+        </div>
 
         {verdict === "too_long" ? (
-          <Notice tone="warn">
-            This tournament has grown too large to put in a link. Use the file below, or turn on
-            live sync.
-          </Notice>
+          <div className="pt-4">
+            <Notice tone="warn">
+              This tournament has grown too large to put in a link. Send the file below instead.
+            </Notice>
+          </div>
         ) : (
-          <>
-            <Field label="Share this">
+          <div className="pt-5">
+            <Field label={audience === "watch" ? "Watch link" : "Organiser link"}>
               <input
                 readOnly
                 value={shareUrl}
@@ -85,53 +127,60 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
               <Button variant="primary" onClick={() => void copy(shareUrl, "link")}>
                 {copied === "link" ? "Copied" : "Copy link"}
               </Button>
+              <Button onClick={() => download(audience === "run")}>Download as a file</Button>
               <Button onClick={() => window.print()}>Print the sheet</Button>
             </div>
-            {verdict === "long" ? (
+
+            {audience === "run" ? (
               <div className="mt-4">
                 <Notice tone="warn">
-                  This link is long. It will work when pasted into a browser, but some chat apps
-                  cut long links in half — send the file instead if it has to survive a group chat.
+                  This one lets whoever opens it enter scores. Send it to the people helping you,
+                  not to the room.
                 </Notice>
               </div>
             ) : null}
-          </>
+
+            {audience === "watch" && holdsPrivate ? (
+              <div className="mt-4">
+                <Notice>
+                  {affected.length} entrant{affected.length === 1 ? "'s" : "s'"} private{" "}
+                  {secret.join(" and ")} {secret.length === 1 ? "is" : "are"} not in this link at
+                  all — not hidden inside it. Whoever opens it has no way to read what was never
+                  sent.
+                </Notice>
+              </div>
+            ) : null}
+
+            {verdict === "long" ? (
+              <div className="mt-4">
+                <Notice tone="warn">
+                  This link is long. It works pasted into a browser, but some chat apps cut long
+                  links in half — send the file if it has to survive a group chat.
+                </Notice>
+              </div>
+            ) : null}
+          </div>
         )}
       </Section>
 
-      <Section label="A file" meta="The durable copy">
+      <Section label="Live" meta={peers.status === "live" ? "On" : "Off"}>
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          Every event, in readable JSON. This is the backup to keep: it survives a cleared browser,
-          a lost phone and a new version of this app, and it can be opened from the front page.
-        </p>
-        <Button onClick={download}>Download the tournament</Button>
-      </Section>
-
-      <Section label="Live sync" meta={peers.status === "live" ? "On" : "Off"}>
-        <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          Several phones can update the same tournament at once. Turn it on here, then share the
-          link again — it will carry the invitation, and whoever opens it is offered a single tap to
-          join. Scores entered on one device appear on the others within seconds, and a device that
-          drops out catches up when it returns.
+          With this on, every device holding an organiser link updates the same tournament at once,
+          and a score entered on one appears on the others within seconds. A device that drops out
+          catches up when it returns. A watch link can read what arrives but cannot push anything
+          back.
         </p>
 
         <Notice>
-          Anyone who opens the link and joins can enter scores, not just read them — there is no
-          separate spectator mode. For an audience, send the embed below instead.
+          There is no server behind this. Devices find each other through public relays we do not
+          control, and it only works while at least one of you has the page open. Some networks
+          block it entirely. The link and the file above are the copies that last.
         </Notice>
-
-        <div className="mt-2">
-          <Notice>
-            There is no server behind this. Devices find each other through public relays we do not
-            control, and it only works while at least one participant has the page open. Some
-            networks block it entirely. The link and the file above are the copies that last.
-          </Notice>
-        </div>
 
         <div className="flex flex-wrap items-center gap-3 py-5">
           {peers.status === "off" || peers.status === "unavailable" ? (
             <Button variant="primary" onClick={peers.start}>
-              Turn on live sync
+              Turn on live
             </Button>
           ) : (
             <Button onClick={peers.stop}>Turn off</Button>
@@ -142,7 +191,7 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
           {peers.status === "live" ? (
             <span className="text-ink-2 text-sm">
               {peers.count === 0
-                ? "Connected. Copy the link above and send it — the other device has to join too."
+                ? "On. Send an organiser link from above — nobody else is here yet."
                 : `Connected to ${peers.count} other device${peers.count === 1 ? "" : "s"}.`}
             </span>
           ) : null}
@@ -153,8 +202,8 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
 
       <Section label="Embed" meta="Read-only">
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
-          Put the results on a club website. The embedded view has no controls and no navigation —
-          just the fixtures and the table.
+          Put the results on a club website. The embedded view has no controls and no navigation,
+          and carries the same redaction as the watch link.
         </p>
         {verdict !== "too_long" ? (
           <>
@@ -185,5 +234,52 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
         )}
       </Section>
     </div>
+  );
+}
+
+function AudienceChoice({
+  value,
+  current,
+  onChange,
+  title,
+  detail,
+}: {
+  value: Audience;
+  current: Audience;
+  onChange: (value: Audience) => void;
+  title: string;
+  detail: string;
+}) {
+  const selected = value === current;
+
+  return (
+    <label
+      className={`border-rule flex cursor-pointer items-start gap-3 border-b py-3 transition-colors ${
+        selected ? "bg-paper-sunk" : "hover:bg-paper-sunk"
+      } has-focus-visible:outline-focus has-focus-visible:outline-2 has-focus-visible:outline-offset-2`}
+    >
+      <input
+        type="radio"
+        name="audience"
+        value={value}
+        checked={selected}
+        onChange={() => onChange(value)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden
+        className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-[1px] ${
+          selected ? "bg-signal" : "border-rule-strong border opacity-40"
+        }`}
+      />
+      <span className="min-w-0 flex-1">
+        <span
+          className={`block text-sm ${selected ? "text-ink font-semibold" : "text-ink font-medium"}`}
+        >
+          {title}
+        </span>
+        <span className="text-ink-2 mt-0.5 block max-w-[64ch] text-sm leading-snug">{detail}</span>
+      </span>
+    </label>
   );
 }

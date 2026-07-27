@@ -19,10 +19,25 @@ import {
   type TournamentState,
 } from "@bracketeer/engine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { actorId, loadLog, saveLog } from "./storage.js";
+import {
+  actorId,
+  loadLog,
+  rememberWriteKey,
+  saveLog,
+  storedWriteKey,
+  writeKeyFor,
+} from "./storage.js";
 
 export interface TournamentStore {
   id: string;
+  /**
+   * The secret that lets a device push changes over live sync. It travels only
+   * in an organiser link, so a watch link can read what arrives and cannot send
+   * anything anybody else will accept.
+   */
+  writeKey: string;
+  /** False when this device opened a watch link: it can look, not push. */
+  canPush: boolean;
   log: EventLog;
   state: TournamentState;
   ratings: Map<string, number>;
@@ -39,8 +54,45 @@ export interface TournamentStore {
   actor: string;
 }
 
-export function useTournament(id: string, fromLink?: EventLog): TournamentStore {
+export function useTournament(
+  id: string,
+  fromLink?: EventLog,
+  /** The key from the address, when the link carried one. */
+  keyFromLink?: string,
+): TournamentStore {
   const actor = useMemo(() => actorId(), []);
+
+  /**
+   * The key this device holds. An organiser link hands one over, and it is kept
+   * so the device stays an organiser on the next visit. Otherwise: whoever made
+   * the tournament here already has one, and anybody else has none.
+   */
+  /**
+   * Who is holding this.
+   *
+   *   · Arrived by watch link — carries the tournament, no key: read-only.
+   *   · Arrived by organiser link — carries a key: keep it, and push.
+   *   · Opened it directly — it is on this device because you made it or
+   *     imported it, so it is yours.
+   *
+   * The middle case is why the key is remembered: the next visit has no key in
+   * the address, and demoting a helper to a spectator overnight would be worse
+   * than useless.
+   */
+  const { writeKey, canPush } = useMemo(() => {
+    if (keyFromLink) {
+      rememberWriteKey(id, keyFromLink);
+      return { writeKey: keyFromLink, canPush: true };
+    }
+
+    const held = storedWriteKey(id);
+    if (held) return { writeKey: held, canPush: true };
+
+    // A link that carried the tournament but no key is somebody watching.
+    if (fromLink && fromLink.length > 0) return { writeKey: "", canPush: false };
+
+    return { writeKey: writeKeyFor(id), canPush: true };
+  }, [id, keyFromLink, fromLink]);
 
   /**
    * A link and a local copy are merged, never one chosen over the other.
@@ -103,5 +155,20 @@ export function useTournament(id: string, fromLink?: EventLog): TournamentStore 
 
   const canUndo = useMemo(() => log.some((e) => e.actor === actor), [log, actor]);
 
-  return { id, log, state, ratings, dispatch, absorb, replace, undo, canUndo, persisted, actor };
+  return {
+    id,
+    writeKey,
+    // Holding the key, or having made this tournament here, is what allows it.
+    canPush,
+    log,
+    state,
+    ratings,
+    dispatch,
+    absorb,
+    replace,
+    undo,
+    canUndo,
+    persisted,
+    actor,
+  };
 }
