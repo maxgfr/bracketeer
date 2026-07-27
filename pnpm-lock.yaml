@@ -127,6 +127,9 @@ importers:
       '@types/node':
         specifier: ^22.13.1
         version: 22.20.1
+      '@vitest/coverage-v8':
+        specifier: ^3.2.7
+        version: 3.2.7(vitest@3.2.7(@types/node@22.20.1)(happy-dom@20.11.1)(jiti@2.7.0)(lightningcss@1.32.0))
       fflate:
         specifier: ^0.8.2
         version: 0.8.3
@@ -171,6 +174,9 @@ importers:
       '@types/node':
         specifier: ^22.13.1
         version: 22.20.1
+      '@vitest/coverage-v8':
+        specifier: ^3.2.7
+        version: 3.2.7(vitest@3.2.7(@types/node@22.20.1)(happy-dom@20.11.1)(jiti@2.7.0)(lightningcss@1.32.0))
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

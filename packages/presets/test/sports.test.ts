@@ -8,7 +8,7 @@
 import { parseConfig, readShape, safeParseConfig, sampleCompletes } from "@bracketeer/engine";
 import { describe, expect, it } from "vitest";
 import { EXAMPLES } from "../src/examples.js";
-import { ALL_FORMATS, findFormat, SPORTS } from "../src/sports.js";
+import { ALL_FORMATS, findFormat, findSport, SPORTS } from "../src/sports.js";
 
 describe("sport presets", () => {
   it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s is a valid rule set", (_id, format) => {
@@ -106,5 +106,23 @@ describe("sport presets", () => {
   it("has unique ids and names", () => {
     expect(new Set(SPORTS.map((s) => s.id)).size).toBe(SPORTS.length);
     expect(new Set(ALL_FORMATS.map((f) => f.id)).size).toBe(ALL_FORMATS.length);
+  });
+});
+
+describe("finding a sport by name", () => {
+  it("returns the sport asked for", () => {
+    expect(findSport(SPORTS[0]!.id)?.id).toBe(SPORTS[0]!.id);
+  });
+
+  it("returns nothing for a sport nobody offers", () => {
+    expect(findSport("quidditch")).toBeUndefined();
+  });
+
+  it("finds every sport by its own id, so none is unreachable by name", () => {
+    for (const sport of SPORTS) expect(findSport(sport.id)).toBeDefined();
+  });
+
+  it("finds every format by its own id", () => {
+    for (const format of ALL_FORMATS) expect(findFormat(format.id)?.id).toBe(format.id);
   });
 });

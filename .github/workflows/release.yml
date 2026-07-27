@@ -61,6 +61,12 @@ jobs:
       - name: App coverage
         run: pnpm --filter @bracketeer/web test:coverage
 
+      - name: Presets coverage
+        run: pnpm --filter @bracketeer/presets test:coverage
+
+      - name: CLI coverage
+        run: pnpm --filter bracketeer-cli test:coverage
+
       - name: Build the site
         run: pnpm build
 

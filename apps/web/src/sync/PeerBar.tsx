@@ -58,6 +58,32 @@ export const SYNC_ACTION = "log";
 /** Bumped when the payload shape changes, so an old peer is ignored rather than misread. */
 export const SYNC_WIRE_VERSION = 2;
 
+/**
+ * What goes on the wire, and what is accepted off it.
+ *
+ * Pulled out of `openSession` so the invariant can be tested without two
+ * browsers and a public relay. The important assertion — that nothing here
+ * carries the organiser key — used to live inside the peer-to-peer test, which
+ * is skipped unless `RUN_P2P_TESTS` is set and therefore never ran in CI. The
+ * guarantee that matters most was the one nothing was checking.
+ */
+export function wireEnvelope(log: EventLog): string {
+  return JSON.stringify({ v: SYNC_WIRE_VERSION, log });
+}
+
+/** The log inside a payload, or null if it is not one we should act on. */
+export function logFromWire(payload: string): EventLog | null {
+  try {
+    const parsed = JSON.parse(payload) as { v?: number; log?: EventLog };
+    if (parsed.v !== SYNC_WIRE_VERSION) return null;
+    return Array.isArray(parsed.log) ? parsed.log : null;
+  } catch {
+    // A malformed payload from an unknown peer is ignored rather than allowed
+    // to take down the organiser's tab.
+    return null;
+  }
+}
+
 export interface SessionHandlers {
   readLog: () => EventLog;
   /**
@@ -98,17 +124,10 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   );
 
   const action = room.makeAction<string>(SYNC_ACTION);
-  const envelope = (log: EventLog) => JSON.stringify({ v: SYNC_WIRE_VERSION, log });
 
   action.onMessage = (payload) => {
-    try {
-      const parsed = JSON.parse(payload) as { v?: number; log?: EventLog };
-      if (parsed.v !== SYNC_WIRE_VERSION) return;
-      if (Array.isArray(parsed.log)) handlers.onIncoming(parsed.log);
-    } catch {
-      // A malformed payload from an unknown peer is ignored rather than allowed
-      // to take down the organiser's tab.
-    }
+    const incoming = logFromWire(payload);
+    if (incoming) handlers.onIncoming(incoming);
   };
 
   const count = () => Object.keys(room.getPeers()).length;
@@ -116,13 +135,13 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   room.onPeerJoin = () => {
     handlers.onPeerCount(count());
     // Whoever arrives gets everything we have; merging sorts out the rest.
-    void action.send(envelope(handlers.readLog()));
+    void action.send(wireEnvelope(handlers.readLog()));
   };
   room.onPeerLeave = () => handlers.onPeerCount(count());
 
   return {
     leave: () => void room.leave(),
-    broadcast: (log) => void action.send(envelope(log)),
+    broadcast: (log) => void action.send(wireEnvelope(log)),
   };
 }
 

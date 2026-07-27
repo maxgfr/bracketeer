@@ -45,7 +45,7 @@ function resultFor(state: TournamentState, match: Match): MatchResult {
   }
 }
 import { describe, expect, it } from "vitest";
-import { CATEGORIES, EXAMPLES } from "../src/examples.js";
+import { CATEGORIES, EXAMPLES, examplesIn, findExample } from "../src/examples.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../examples");
 
@@ -313,5 +313,40 @@ describe("every example plays to the end", () => {
 
     // And everyone beaten in its first round gets the consolante.
     expect(state.matches.some((m) => m.bracket === "consolation")).toBe(true);
+  });
+});
+
+/**
+ * The lookup helpers, which a coverage gate found nothing was calling.
+ *
+ * They are the entry points every consumer uses to get from a name to a
+ * configuration — the app's chooser, the CLI's `--shape`, the MCP's
+ * `describe_shape`. Untested, a rename would break all three silently.
+ */
+describe("finding a starting point by name", () => {
+  it("returns the example asked for", () => {
+    expect(findExample("knockout")?.id).toBe("knockout");
+    expect(findExample("groups-then-knockout")?.name).toBeTruthy();
+  });
+
+  it("returns nothing for a name that is not one, rather than guessing", () => {
+    expect(findExample("quidditch")).toBeUndefined();
+  });
+
+  it("groups examples under the question they answer", () => {
+    for (const category of CATEGORIES) {
+      const inside = examplesIn(category.id);
+      expect(inside.every((e) => e.category === category.id)).toBe(true);
+    }
+  });
+
+  it("puts every example in exactly one category, so none is unreachable", () => {
+    const grouped = CATEGORIES.flatMap((c) => examplesIn(c.id));
+    expect(grouped).toHaveLength(EXAMPLES.length);
+    expect(new Set(grouped.map((e) => e.id)).size).toBe(EXAMPLES.length);
+  });
+
+  it("has no empty category, which would render as a heading over nothing", () => {
+    for (const category of CATEGORIES) expect(examplesIn(category.id).length).toBeGreaterThan(0);
   });
 });

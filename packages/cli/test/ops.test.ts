@@ -169,3 +169,115 @@ describe("choosing a starting point", () => {
     expect(ops.listShapes().length).toBeGreaterThan(10);
   });
 });
+
+/**
+ * The operations a coverage gate found nothing was calling.
+ *
+ * Each is reachable from the CLI, the MCP server, or both. Untested, they were
+ * nine commands that a user could run and nothing said whether they worked.
+ */
+describe("correcting what has already been recorded", () => {
+  function played() {
+    let log = started();
+    const first = ops.listMatches(log, { only: "ready" })[0]!;
+    log = ops.report(log, { match: first.id, score: "13-7", actor: "test" }).log;
+    return { log, matchId: first.id };
+  }
+
+  it("clears a result, and the fixture is playable again", () => {
+    const { log, matchId } = played();
+    expect(ops.listMatches(log).find((m) => m.id === matchId)?.status).toBe("complete");
+
+    const after = ops.clearResult(log, { match: matchId, actor: "test" });
+    expect(after.result.match).toBe(matchId);
+    expect(ops.listMatches(after.log).find((m) => m.id === matchId)?.status).toBe("ready");
+  });
+
+  it("voids a fixture with a reason, and restores it", () => {
+    const { log, matchId } = played();
+
+    const voided = ops.voidMatch(log, { match: matchId, reason: "abandoned", actor: "test" });
+    expect(ops.listMatches(voided.log).find((m) => m.id === matchId)?.status).toBe("void");
+
+    const restored = ops.restoreMatch(voided.log, { match: matchId, actor: "test" });
+    expect(ops.listMatches(restored.log).find((m) => m.id === matchId)?.status).not.toBe("void");
+  });
+
+  it("removes somebody entered by mistake", () => {
+    const log = ops.create({
+      shape: "knockout",
+      entrants: ["Marie", "Luc", "Ana", "Typo"],
+      seed: 3,
+      actor: "test",
+    }).log;
+
+    const after = ops.removeEntrant(log, { entrant: "Typo", actor: "test" });
+    expect(after.result.id).toBe("typo");
+    expect(ops.listEntrants(after.log).map((e) => e.name)).not.toContain("Typo");
+  });
+});
+
+describe("ratings", () => {
+  it("are derived from the matches, not stored", () => {
+    let log = ops.create({
+      shape: "all-play-all",
+      config: { rating: { system: "elo" } },
+      entrants: ["Marie", "Luc", "Ana", "Paul"],
+      seed: 2,
+      actor: "test",
+    }).log;
+    log = ops.start(log, { actor: "test" }).log;
+    for (const match of ops.listMatches(log, { only: "ready" })) {
+      log = ops.report(log, { match: match.id, score: "13-7", actor: "test" }).log;
+    }
+
+    const table = ops.ratings(log);
+    expect(table).toHaveLength(4);
+    expect(table[0]!.rating).toBeGreaterThan(table[table.length - 1]!.rating);
+    // Sorted strongest first, which is the only order worth printing.
+    expect([...table].sort((a, b) => b.rating - a.rating)).toEqual(table);
+  });
+
+  it("are empty rather than undefined before anybody has played", () => {
+    expect(ops.ratings(ops.create({ shape: "knockout", seed: 1, actor: "test" }).log)).toEqual([]);
+  });
+});
+
+describe("the calendar", () => {
+  const scheduled = () => {
+    const log = started();
+    return ops.planTimes(log, { startsAt: "2026-05-01T09:00:00.000Z", actor: "test" });
+  };
+
+  it("gives every fixture a time", () => {
+    const outcome = scheduled();
+    expect(outcome.result.scheduled).toBeGreaterThan(0);
+    expect(ops.listMatches(outcome.log).every((m) => m.scheduledAt !== null)).toBe(true);
+  });
+
+  it("reports clashes rather than scheduling somebody twice at once", () => {
+    // Nobody is double-booked by a plan the scheduler made itself.
+    expect(ops.conflicts(scheduled().log)).toEqual([]);
+  });
+
+  it("exports something a calendar will actually open", () => {
+    const ics = ops.icsOf(scheduled().log);
+    expect(ics).toMatch(/^BEGIN:VCALENDAR/);
+    expect(ics).toMatch(/END:VCALENDAR\s*$/);
+    expect(ics).toContain("BEGIN:VEVENT");
+  });
+});
+
+describe("the sports list", () => {
+  it("offers every sport with at least one format to start from", () => {
+    const sports = ops.listSports();
+    expect(sports.length).toBeGreaterThan(10);
+    for (const sport of sports) {
+      expect(sport.name).toBeTruthy();
+      expect(sport.formats.length).toBeGreaterThan(0);
+      // Each format says which shape it is, because that is the whole claim:
+      // a sport is a shape with the scoring filled in, not a mode.
+      for (const format of sport.formats) expect(format.basedOn).toBeTruthy();
+    }
+  });
+});

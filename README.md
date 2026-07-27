@@ -1,10 +1,21 @@
 # Bracketeer
 
-**Tournament brackets, Swiss pairings, leagues and Elo — running entirely in your browser.**
+**A sport-agnostic tournament engine — brackets, Swiss pairings, leagues and Elo.**
 
-→ **[maxgfr.github.io/bracketeer](https://maxgfr.github.io/bracketeer)**
+[![npm](https://img.shields.io/npm/v/bracketeer-cli?color=cb3837&label=bracketeer-cli)](https://www.npmjs.com/package/bracketeer-cli)
+[![CI](https://github.com/maxgfr/bracketeer/actions/workflows/ci.yml/badge.svg)](https://github.com/maxgfr/bracketeer/actions/workflows/ci.yml)
+[![licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-No account. No server. No database. You create a tournament, run it, and share a link.
+The same engine, three ways to reach it:
+
+|  | |
+|---|---|
+| **A web app** | → **[maxgfr.github.io/bracketeer](https://maxgfr.github.io/bracketeer)** — no account, no server, no database |
+| **A command** | `npx bracketeer-cli new --sport petanque --entrants "Marie,Luc,Ana,Paul"` |
+| **A library** | `import { replay, parseConfig } from "bracketeer-cli"` — ESM, CJS, typed |
+
+There is also an [agent skill](skills/bracketeer/SKILL.md) and an MCP server, so you can ask an
+assistant to run the club night and get back a link to hand out.
 
 ---
 
@@ -77,39 +88,71 @@ third-party relays, and only works while at least one participant has the page o
 block it. The app says so on the page. And a watch link cannot be un-sent — whoever has it keeps a
 copy of what it carried. The link and the file are the copies that last.
 
-## From a terminal, or a conversation
-
-The engine is not only for the browser. [`bracketeer-cli`](packages/cli) runs a whole tournament from the command line,
-and `bracketeer-mcp` offers the same operations as MCP tools, so an agent can be asked to run the
-club night and hand back a link that opens in the site.
+## From a terminal
 
 ```bash
-npx bracketeer-cli new --sport petanque --entrants "Marie,Luc,Ana,Paul" --json
+npx bracketeer-cli new --sport petanque --entrants "Marie,Luc,Ana,Paul"
 npx bracketeer-cli status <id>      # says the one thing to do next
 npx bracketeer-cli report <id> "Marie v Luc" --score "13-7"
 npx bracketeer-cli standings <id>
 npx bracketeer-cli link <id>        # a watch link, ready to paste into the site
 ```
 
-There is an [agent skill](skills/bracketeer/SKILL.md) that teaches this, installable into any of
-seventy-odd coding agents:
+Every command takes `--json`. Tournaments are files in `~/.bracketeer`, written in the format the
+web app imports, so one can start here and finish on a phone.
+
+## As a library
+
+```bash
+npm install bracketeer-cli
+```
+
+```ts
+import { createTournament, addEntrant, appendEvent, replay } from "bracketeer-cli";
+import { findExample } from "bracketeer-cli/presets";
+
+let log = appendEvent([], "me", createTournament({
+  name: "Club night",
+  config: findExample("knockout")!.config,
+  seed: 7,
+  createdAt: new Date().toISOString(),
+}), Date.now());
+
+log = appendEvent(log, "me", addEntrant({ id: "ana", name: "Ana" }), Date.now());
+const state = replay(log);
+```
+
+Commands return events, you append them, and the state is a fold over the log. Nothing mutates, so
+undo is dropping an event, two devices replaying the same log reach identical state, and correcting
+a score three rounds back fixes every standing and rating after it.
+
+ESM and CommonJS, with types. `parseConfig({})` already gives you a runnable tournament, so you
+only write the deltas you care about. Full reference in [`packages/cli/README.md`](packages/cli/README.md).
+
+## From a conversation
+
+`bracketeer-mcp` offers the same operations as MCP tools:
+
+```json
+{
+  "mcpServers": {
+    "bracketeer": { "command": "npx", "args": ["-y", "--package=bracketeer-cli", "bracketeer-mcp"] }
+  }
+}
+```
+
+Or install the [agent skill](skills/bracketeer/SKILL.md), which teaches an assistant to drive the
+command — into any of seventy-odd coding agents:
 
 ```bash
 npx skills add maxgfr/bracketeer          # -g for every project
 ```
 
-And the engine is importable from the same package, in ESM or CommonJS, with types:
+The skill's claims are tested rather than trusted: `packages/cli/test/skill.test.ts` fails if it
+names a command that does not exist, a flag the parser ignores, or a score notation that would be
+rejected. A skill that has drifted is worse than no skill, because it gets followed confidently.
 
-```ts
-import { parseConfig, replay, appendEvent, createTournament, logFor } from "bracketeer-cli";
-import { EXAMPLES, SPORTS } from "bracketeer-cli/presets";
-```
-
-See [`packages/cli/README.md`](packages/cli/README.md). It is one package rather than
-three because one package is one publication to keep in step.
-
-Its claims are tested rather than trusted — `packages/cli/test/skill.test.ts` fails if the skill
-names a command that does not exist or a score notation the parser would reject.
+One package rather than three, because one package is one publication to keep in step.
 
 ## Ratings
 
@@ -125,9 +168,12 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 258 engine + 371 preset + 95 cli + 127 app tests
+pnpm test         # 934 tests: 279 engine · 380 presets · 137 cli · 138 app
 pnpm typecheck
 pnpm build
+
+pnpm --filter @bracketeer/web test:e2e        # 9 browser tests, in the Chrome you have
+RUN_P2P_TESTS=1 pnpm --filter @bracketeer/web test  # real WebRTC over public relays
 ```
 
 ```
@@ -135,8 +181,8 @@ packages/engine   Pure TypeScript — formats, pairing, standings, ratings, sche
                   redaction. No DOM, no React, no network. This is where the rules live.
 packages/presets  Shapes and sports, as data. Outside the engine because the engine
                   must never contain the name of a sport, and a test enforces that.
-packages/cli      The `bracketeer` command and the MCP server, over one set of
-                  operations so the two front ends cannot disagree.
+packages/cli      The library, the `bracketeer` command and the MCP server, over one
+                  set of operations so the front ends cannot disagree.
 apps/web          Vite + React + Tailwind. Rendering and interaction only.
 skills/           The agent skill, installable with `npx skills add`.
 examples/         Composed configurations, as data rather than code.
@@ -148,7 +194,13 @@ sharing compact, peer merges deterministic, and undo free. Nothing in it calls `
 reads the clock, because two devices replaying the same log must reach identical state.
 
 Glicko-2 is verified against the worked example in Glickman's paper; pairing invariants are
-property-tested; every format is played end to end.
+property-tested; every format is played end to end. The browser suite checks the one claim the
+others structurally cannot — that a watch link shows a stranger nothing private — against the built
+bundle, in a real browser.
+
+Releases are cut from the commit messages: `fix:` a patch, `feat:` a minor, `feat!:` a major.
+Merging to `main` runs everything above and then publishes to npm on its own, with provenance.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentation
 

@@ -30,9 +30,23 @@ package would notice. A breaking change is a `!` after the type, or a
 
 The scope is optional and free-form; `feat(cli):` and `fix(engine):` read well.
 
-Merging to `main` runs typecheck, tests, both coverage gates and the build, and
-only then publishes to npm and opens a GitHub release. Nothing is published by
-hand.
+Merging to `main` runs typecheck, tests, all four coverage gates, the build and
+the browser suite, and only then publishes to npm and opens a GitHub release.
+Nothing is published by hand — authentication is npm trusted publishing over
+OIDC, so there is no token to leak or rotate.
+
+**If a release fails after the tag is pushed.** semantic-release creates and
+pushes the tag before it publishes, so a publish that fails leaves a repository
+claiming a version the registry has never heard of. The recovery is to delete
+the tag, put the version back, and let the next run compute it again:
+
+```bash
+git push --delete origin vX.Y.Z && git tag -d vX.Y.Z
+git revert <the chore(release) commit>
+```
+
+`verifyConditions` catches authentication problems before the tag exists, which
+is the common case. What it cannot catch is the registry failing mid-publish.
 
 ## Before you add a sport
 
