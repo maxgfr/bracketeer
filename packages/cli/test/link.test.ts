@@ -23,6 +23,11 @@ const browser: Compressor = {
   inflate: (bytes) => inflateSync(bytes),
 };
 
+/** Every link is `…#/t/:id?d=<log>&…`, so the payload is what follows `d=`. */
+function payloadOf(url: string): string {
+  return url.split("d=")[1]?.split("&")[0] ?? "";
+}
+
 function playedTournament(): EventLog {
   let { log } = ops.create({
     name: "Round trip",
@@ -143,5 +148,59 @@ describe("what a link carries", () => {
     expect(ops.exportFor(log, "watch")).toEqual([...decode(
       ops.link(log, { id: "abc", audience: "watch" }).url.split("d=")[1]!.split("&")[0]!,
     )]);
+  });
+});
+
+describe("a private field, filled in and then shared", () => {
+  /**
+   * The whole round trip, because until `update` existed the value could be
+   * defined but never entered — and a privacy guarantee about data nobody can
+   * record is not a guarantee, it is a shape.
+   */
+  function withPhone(): EventLog {
+    const { log } = ops.create({
+      name: "League night",
+      config: {
+        entrantFields: [
+          { key: "club", label: "Club", private: false },
+          { key: "phone", label: "Phone" },
+        ],
+      },
+      entrants: ["Marie", "Luc"],
+      seed: 4,
+      actor: "test",
+    });
+
+    return ops.updateEntrant(log, {
+      entrant: "Marie",
+      meta: { club: "North", phone: "0612345678" },
+      actor: "test",
+    }).log;
+  }
+
+  it("records the value, so the organiser has it", () => {
+    const marie = ops.listEntrants(withPhone()).find((e) => e.name === "Marie");
+    expect(marie?.meta.phone).toBe("0612345678");
+    expect(marie?.meta.club).toBe("North");
+  });
+
+  it("keeps it out of the watch link, and keeps the club in", () => {
+    const carried = JSON.stringify(
+      decode(payloadOf(ops.link(withPhone(), { id: "x", audience: "watch" }).url)),
+    );
+    expect(carried).not.toContain("0612345678");
+    expect(carried).not.toContain("phone");
+    expect(carried).toContain("North");
+  });
+
+  it("keeps it in the organiser link, which is who that one is for", () => {
+    const carried = JSON.stringify(
+      decode(payloadOf(ops.link(withPhone(), { id: "x", audience: "run" }).url)),
+    );
+    expect(carried).toContain("0612345678");
+  });
+
+  it("keeps it out of a watch export too, not only the link", () => {
+    expect(JSON.stringify(ops.exportFor(withPhone(), "watch"))).not.toContain("0612345678");
   });
 });

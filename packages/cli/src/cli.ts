@@ -18,13 +18,14 @@ import { VERSION } from "./version.js";
 interface Args {
   command: string;
   positional: string[];
-  flags: Record<string, string | boolean>;
+  /** Every occurrence, in order — `--set` is meant to be repeated. */
+  flags: Record<string, (string | true)[]>;
 }
 
 function parseArgs(argv: readonly string[]): Args {
   const [command = "help", ...rest] = argv;
   const positional: string[] = [];
-  const flags: Record<string, string | boolean> = {};
+  const flags: Record<string, (string | true)[]> = {};
 
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i]!;
@@ -34,21 +35,24 @@ function parseArgs(argv: readonly string[]): Args {
     }
     const name = token.slice(2);
     const next = rest[i + 1];
-    if (next === undefined || next.startsWith("--")) {
-      flags[name] = true;
-    } else {
-      flags[name] = next;
-      i += 1;
-    }
+    (flags[name] ??= []).push(next === undefined || next.startsWith("--") ? true : next);
+    if (next !== undefined && !next.startsWith("--")) i += 1;
   }
 
   return { command, positional, flags };
 }
 
-const str = (args: Args, name: string): string | undefined =>
-  typeof args.flags[name] === "string" ? (args.flags[name] as string) : undefined;
+/** The last one given, so a repeated flag means what somebody typed most recently. */
+const str = (args: Args, name: string): string | undefined => {
+  const values = (args.flags[name] ?? []).filter((v): v is string => typeof v === "string");
+  return values[values.length - 1];
+};
 
-const bool = (args: Args, name: string): boolean => args.flags[name] === true;
+/** Every one given, for flags that accumulate. */
+const all = (args: Args, name: string): string[] =>
+  (args.flags[name] ?? []).filter((v): v is string => typeof v === "string");
+
+const bool = (args: Args, name: string): boolean => (args.flags[name] ?? []).includes(true);
 
 /** The tournament being worked on: an explicit id, or the most recent one. */
 function targetId(args: Args): string {
@@ -106,6 +110,7 @@ const HELP = `bracketeer ${VERSION} — run a tournament from the terminal
         [--entrants "A,B,C"] [--seed <n>]
     entrants [--json]
     add "Name" ["Name" …]
+    update <entrant> [--name <text>] [--seed <n>] [--set key=value …]
     withdraw <entrant>              keep them in the record, out of the draw
     remove <entrant>
 
@@ -263,6 +268,37 @@ function run(args: Args): void {
       });
       save(id, outcome.log);
       emit(args, outcome.result, () => `${outcome.result.id} is ${outcome.result.status}.`);
+      return;
+    }
+
+    case "update": {
+      const id = targetId(args);
+      const who = args.positional[idWasPositional(args) ? 1 : 0];
+      if (!who) throw new Error("Which entrant?");
+
+      /*
+       * `--set key=value`, repeatable. This is how a private field gets a value
+       * from here at all: the field is defined in the configuration, and until
+       * something can fill it in, "private" is a promise about data nobody can
+       * enter.
+       */
+      const meta: Record<string, string> = {};
+      for (const pair of all(args, "set")) {
+        const at = pair.indexOf("=");
+        if (at < 1) throw new Error(`--set wants key=value, not "${pair}".`);
+        meta[pair.slice(0, at)] = pair.slice(at + 1);
+      }
+
+      const seed = str(args, "seed");
+      const outcome = ops.updateEntrant(load(id), {
+        entrant: who,
+        name: str(args, "name"),
+        seed: seed === undefined ? undefined : seed === "none" ? null : Number(seed),
+        meta: Object.keys(meta).length > 0 ? meta : undefined,
+        actor,
+      });
+      save(id, outcome.log);
+      emit(args, outcome.result, () => `Updated ${outcome.result.id}.`);
       return;
     }
 

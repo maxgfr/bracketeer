@@ -155,6 +155,29 @@ reads("list_entrants", "Everyone in the tournament, with their seed and status."
 );
 
 writes(
+  "update_entrant",
+  "Change an entrant's name or seed, or set custom field values on them. Fields defined as private stay on this machine and are absent from a watch link — do not publish somebody's phone number on their behalf.",
+  {
+    tournament,
+    entrant: z.string().describe("An entrant id or name."),
+    name: z.string().optional(),
+    seed: z.number().nullable().optional().describe("null to unseed them."),
+    meta: z
+      .record(z.string())
+      .optional()
+      .describe('Custom field values, e.g. {"club": "North"}. Keys must be defined in entrantFields.'),
+  },
+  (args) =>
+    ops.updateEntrant(load(args.tournament), {
+      entrant: args.entrant,
+      name: args.name,
+      seed: args.seed,
+      meta: args.meta,
+      actor: ACTOR,
+    }),
+);
+
+writes(
   "withdraw_entrant",
   "Take someone out of future draws while keeping the matches they already played.",
   { tournament, entrant: z.string().describe("An entrant id or name.") },
