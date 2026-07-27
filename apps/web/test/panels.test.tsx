@@ -1162,27 +1162,62 @@ describe("getting the link at the moment you need it", () => {
   });
 });
 
-describe("marking a field private", () => {
-  it("is a checkbox on the field, and it sticks", async () => {
-    const user = userEvent.setup();
+describe("publishing a field", () => {
+  it("starts unticked, because a new field is nobody else's business yet", () => {
+    open(
+      { score: { kind: "points" }, entrantFields: [{ key: "phone", label: "Phone" }] },
+      four,
+      "entrants",
+      { started: false },
+    );
+
+    // The safe state is the default one. When this read "Private" and started
+    // unticked, the box nobody found was the box that leaked.
+    expect(screen.getByRole("checkbox", { name: /share/i })).not.toBeChecked();
+  });
+
+  it("is ticked for a field the organiser published", () => {
     open(
       {
         score: { kind: "points" },
-        entrantFields: [{ key: "phone", label: "Phone" }],
+        entrantFields: [{ key: "club", label: "Club", private: false }],
       },
       four,
       "entrants",
       { started: false },
     );
 
-    const toggle = screen.getByRole("checkbox");
-    expect(toggle).not.toBeChecked();
-
-    await user.click(toggle);
-    await waitFor(() => expect(screen.getByRole("checkbox")).toBeChecked());
+    expect(screen.getByRole("checkbox", { name: /share/i })).toBeChecked();
   });
 
-  it("says what marking it does", () => {
+  it("sticks when ticked", async () => {
+    const user = userEvent.setup();
+    open(
+      { score: { kind: "points" }, entrantFields: [{ key: "phone", label: "Phone" }] },
+      four,
+      "entrants",
+      { started: false },
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: /share/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: /share/i })).toBeChecked(),
+    );
+  });
+
+  it("a field added here is private, without anybody choosing that", async () => {
+    const user = userEvent.setup();
+    open({ score: { kind: "points" } }, four, "entrants", { started: false });
+
+    await user.type(screen.getByLabelText(/new field/i), "Phone");
+    await user.click(screen.getByRole("button", { name: /add field/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: /share/i })).not.toBeChecked(),
+    );
+  });
+
+  it("says what leaving it unticked does", () => {
     open({ score: { kind: "points" } }, four, "entrants", { started: false });
     expect(screen.getByText(/not in the watch link at all/i)).toBeInTheDocument();
   });

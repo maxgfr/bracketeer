@@ -4,10 +4,9 @@
  * engine did not produce, every drawing on the chooser is a lie.
  */
 
-import { parseConfig } from "@bracketeer/engine";
+import { parseConfig, readShape, sampleCompletes } from "@bracketeer/engine";
 import { describe, expect, it } from "vitest";
-import { EXAMPLES, findExample } from "../src/lib/examples.js";
-import { readShape, sampleCompletes } from "../src/lib/shape.js";
+import { EXAMPLES, findExample } from "../src/examples.js";
 
 const shapeOf = (id: string) => readShape(findExample(id)!.config);
 

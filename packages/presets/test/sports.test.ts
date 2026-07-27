@@ -5,11 +5,10 @@
  * its whole design avoiding.
  */
 
-import { parseConfig, safeParseConfig } from "@bracketeer/engine";
+import { parseConfig, readShape, safeParseConfig, sampleCompletes } from "@bracketeer/engine";
 import { describe, expect, it } from "vitest";
-import { EXAMPLES } from "../src/lib/examples.js";
-import { readShape, sampleCompletes } from "../src/lib/shape.js";
-import { ALL_FORMATS, findFormat, findSport, SPORTS } from "../src/lib/sports.js";
+import { EXAMPLES } from "../src/examples.js";
+import { ALL_FORMATS, findFormat, SPORTS } from "../src/sports.js";
 
 describe("sport presets", () => {
   it.each(ALL_FORMATS.map((f) => [f.id, f] as const))("%s is a valid rule set", (_id, format) => {

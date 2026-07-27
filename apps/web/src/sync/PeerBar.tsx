@@ -10,9 +10,17 @@
  * and the durable copies remain the share link and the exported file. Merging is
  * safe because the log is a set of immutable events — two devices that were
  * apart for ten minutes converge on the union, in the same order, every time.
+ *
+ * **The room is derived from the organiser key, and the key never goes on the
+ * wire.** An earlier version named the room after the tournament id and put the
+ * key in every message, which got both halves wrong at once: the id travels in
+ * every watch link, so the room was one anybody could walk into, and once inside
+ * they were handed the key that let them push. Membership is now the credential
+ * — you cannot find the room without the secret, so nothing sent inside it needs
+ * to carry proof of holding one.
  */
 
-import { mergeLogs, type EventLog } from "@bracketeer/engine";
+import { mergeLogs, roomIdFor, type EventLog } from "@bracketeer/engine";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Label } from "../components/Sheet.js";
 import type { TournamentStore } from "../lib/useTournament.js";
@@ -47,19 +55,19 @@ interface Session {
  */
 export const SYNC_APP_ID = "bracketeer";
 export const SYNC_ACTION = "log";
+/** Bumped when the payload shape changes, so an old peer is ignored rather than misread. */
+export const SYNC_WIRE_VERSION = 2;
 
 export interface SessionHandlers {
   readLog: () => EventLog;
   /**
-   * The tournament's write key, or null on a device holding a watch link.
+   * The organiser key, used to encrypt signalling — never sent as data.
    *
-   * Peers attach it to what they send and refuse what arrives without it, so a
-   * watch link can follow along and cannot change anybody else's tournament.
-   * This is a shared secret passed between people who already trust each other,
-   * not authentication — it stops the wrong link being used by accident, which
-   * is the failure that actually happens.
+   * The room name is already a one-way function of this, so anybody who found
+   * the room holds the secret. Putting it in the messages as well would only
+   * mean handing it to whoever got in.
    */
-  writeKey: string | null;
+  password: string;
   onIncoming: (log: EventLog) => void;
   onPeerCount: (count: number) => void;
   onError: (message: string) => void;
@@ -73,6 +81,7 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   const room = joinRoom(
     {
       appId: SYNC_APP_ID,
+      password: handlers.password,
       ...(handlers.rtcPolyfill ? { rtcPolyfill: handlers.rtcPolyfill as never } : {}),
     },
     roomId,
@@ -89,14 +98,12 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   );
 
   const action = room.makeAction<string>(SYNC_ACTION);
-  const envelope = (log: EventLog) => JSON.stringify({ k: handlers.writeKey, log });
+  const envelope = (log: EventLog) => JSON.stringify({ v: SYNC_WIRE_VERSION, log });
 
   action.onMessage = (payload) => {
     try {
-      const parsed = JSON.parse(payload) as { k?: string | null; log?: EventLog };
-      // Without the key this is somebody reading over your shoulder, not
-      // somebody helping run the tournament.
-      if (!parsed.k || parsed.k !== handlers.writeKey) return;
+      const parsed = JSON.parse(payload) as { v?: number; log?: EventLog };
+      if (parsed.v !== SYNC_WIRE_VERSION) return;
       if (Array.isArray(parsed.log)) handlers.onIncoming(parsed.log);
     } catch {
       // A malformed payload from an unknown peer is ignored rather than allowed
@@ -119,7 +126,7 @@ export async function openSession(roomId: string, handlers: SessionHandlers): Pr
   };
 }
 
-export function usePeers(tournamentId: string, store: TournamentStore): PeerState {
+export function usePeers(store: TournamentStore): PeerState {
   const [status, setStatus] = useState<PeerStatus>("off");
   const [count, setCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -131,22 +138,37 @@ export function usePeers(tournamentId: string, store: TournamentStore): PeerStat
   logRef.current = store.log;
 
   const absorb = store.absorb;
+  const writeKey = store.writeKey;
 
   const start = useCallback(() => {
     if (session.current) return;
+
+    // A watch link holds no key, so it cannot derive the room and could not be
+    // admitted to it. Saying so is better than a button that spins and fails.
+    if (!writeKey) {
+      setStatus("unavailable");
+      setError(
+        "This is a watch link, so it cannot follow along live. Ask the organiser for an organiser link.",
+      );
+      return;
+    }
+
     setStatus("connecting");
     setError(null);
 
-    openSession(tournamentId, {
-      readLog: () => logRef.current,
-      writeKey: store.writeKey || null,
-      onIncoming: (incoming) => absorb(mergeLogs([], incoming)),
-      onPeerCount: setCount,
-      onError: (message) => {
-        setStatus("unavailable");
-        setError(message);
-      },
-    })
+    roomIdFor(writeKey)
+      .then((roomId) =>
+        openSession(roomId, {
+          readLog: () => logRef.current,
+          password: writeKey,
+          onIncoming: (incoming) => absorb(mergeLogs([], incoming)),
+          onPeerCount: setCount,
+          onError: (message) => {
+            setStatus("unavailable");
+            setError(message);
+          },
+        }),
+      )
       .then((opened) => {
         session.current = opened;
         setStatus("live");
@@ -159,7 +181,7 @@ export function usePeers(tournamentId: string, store: TournamentStore): PeerStat
             : "Live sync could not start. This network may be blocking peer-to-peer connections.",
         );
       });
-  }, [tournamentId, absorb]);
+  }, [writeKey, absorb]);
 
   const stop = useCallback(() => {
     session.current?.leave();

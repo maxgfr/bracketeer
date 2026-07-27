@@ -45,7 +45,7 @@ function resultFor(state: TournamentState, match: Match): MatchResult {
   }
 }
 import { describe, expect, it } from "vitest";
-import { CATEGORIES, EXAMPLES } from "../src/lib/examples.js";
+import { CATEGORIES, EXAMPLES } from "../src/examples.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../examples");
 

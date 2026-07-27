@@ -21,6 +21,7 @@ import {
   createTournament,
   mergeLogs,
   replay,
+  roomIdFor,
   startStage,
   type DomainEvent,
   type EventEnvelope,
@@ -28,10 +29,18 @@ import {
 } from "@bracketeer/engine";
 import { describe, expect, it } from "vitest";
 import { RTCPeerConnection } from "werift";
-import { openSession, SYNC_ACTION, SYNC_APP_ID } from "../src/sync/PeerBar.js";
+import {
+  openSession,
+  SYNC_ACTION,
+  SYNC_APP_ID,
+  SYNC_WIRE_VERSION,
+} from "../src/sync/PeerBar.js";
 
 const live = process.env.RUN_P2P_TESTS ? describe : describe.skip;
 const workerPath = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures/peer-worker.mjs");
+
+/** The organiser key. The room is derived from it and it never goes on the wire. */
+const WRITE_KEY = "test-write-key-01";
 
 const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -44,11 +53,16 @@ async function waitFor(predicate: () => boolean, timeoutMs: number): Promise<boo
   return false;
 }
 
+/** What a peer puts on the wire: a version and a log, and nothing else. */
+function wire(log: EventLog): string {
+  return JSON.stringify({ v: SYNC_WIRE_VERSION, log });
+}
+
 /** The other device, in its own process so it has its own peer identity. */
-function spawnPeer(roomId: string, payloadToSend = "") {
+function spawnPeer(roomId: string, password: string, payloadToSend = "") {
   const child: ChildProcess = spawn(
     process.execPath,
-    [workerPath, roomId, SYNC_APP_ID, SYNC_ACTION, payloadToSend],
+    [workerPath, roomId, SYNC_APP_ID, SYNC_ACTION, password || "-", payloadToSend],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
 
@@ -98,13 +112,15 @@ live("live sync between two devices", () => {
   it(
     "sends the whole tournament to a device that joins later",
     async () => {
-      const room = `bracketeer-test-${Date.now()}-${process.pid}`;
+      const key = `${WRITE_KEY}-${Date.now()}-${process.pid}`;
+      const room = await roomIdFor(key);
       let log = buildTournament();
       const errors: string[] = [];
       let peerCount = 0;
 
       const session = await openSession(room, {
         readLog: () => log,
+        password: key,
         onIncoming: (incoming) => {
           log = mergeLogs(log, incoming) as EventEnvelope[];
         },
@@ -115,7 +131,7 @@ live("live sync between two devices", () => {
         rtcPolyfill: RTCPeerConnection,
       });
 
-      const other = spawnPeer(room);
+      const other = spawnPeer(room, key);
 
       try {
         const connected = await waitFor(() => peerCount > 0 && other.saw("peer-join"), 45_000);
@@ -124,8 +140,14 @@ live("live sync between two devices", () => {
         const gotIt = await waitFor(() => other.received().length > 0, 30_000);
         expect(gotIt, "the joining device never received the tournament").toBe(true);
 
+        const payload = other.received()[0] as string;
+
+        // The key is the one thing that must never travel. Everybody in this
+        // room already holds it; anybody who did not could not have got in.
+        expect(payload).not.toContain(key);
+
         // What arrived must replay to the same tournament.
-        const delivered = JSON.parse(other.received()[0] as string) as EventLog;
+        const { log: delivered } = JSON.parse(payload) as { log: EventLog };
         expect(replay(delivered).name).toBe("Club Open");
         expect(replay(delivered).entrants).toHaveLength(4);
         expect(replay(delivered)).toEqual(replay(log));
@@ -138,9 +160,48 @@ live("live sync between two devices", () => {
   );
 
   it(
+    "tells a spectator nothing, even one who guessed the tournament id",
+    async () => {
+      // The room used to be named after the tournament id, which travels in
+      // every watch link — so this is exactly the attack that used to work.
+      const key = `${WRITE_KEY}-spectator-${Date.now()}-${process.pid}`;
+      const tournamentId = `abc${process.pid}`;
+      const room = await roomIdFor(key);
+      let log = buildTournament();
+      const errors: string[] = [];
+
+      const session = await openSession(room, {
+        readLog: () => log,
+        password: key,
+        onIncoming: (incoming) => {
+          log = mergeLogs(log, incoming) as EventEnvelope[];
+        },
+        onPeerCount: () => {},
+        onError: (message) => errors.push(message),
+        rtcPolyfill: RTCPeerConnection,
+      });
+
+      // A spectator knows the id and nothing else, so that is the room they can
+      // name — and it is not the room anybody is in.
+      const spectator = spawnPeer(tournamentId, "");
+
+      try {
+        await settle(20_000);
+        expect(spectator.received(), `errors: ${errors.join("; ")}`).toHaveLength(0);
+        expect(spectator.saw("peer-join")).toBe(false);
+      } finally {
+        spectator.stop();
+        session.leave();
+      }
+    },
+    120_000,
+  );
+
+  it(
     "takes in a score entered on the other device",
     async () => {
-      const room = `bracketeer-score-${Date.now()}-${process.pid}`;
+      const key = `${WRITE_KEY}-score-${Date.now()}-${process.pid}`;
+      const room = await roomIdFor(key);
       let log = buildTournament();
       const state = replay(log);
       const match = state.matches.find((m) => m.status === "ready");
@@ -157,6 +218,7 @@ live("live sync between two devices", () => {
       const errors: string[] = [];
       const session = await openSession(room, {
         readLog: () => log,
+        password: key,
         onIncoming: (incoming) => {
           log = mergeLogs(log, incoming) as EventEnvelope[];
         },
@@ -165,7 +227,7 @@ live("live sync between two devices", () => {
         rtcPolyfill: RTCPeerConnection,
       });
 
-      const other = spawnPeer(room, JSON.stringify(theirLog));
+      const other = spawnPeer(room, key, wire(theirLog));
 
       try {
         const arrived = await waitFor(
@@ -214,7 +276,8 @@ live("the share-link flow", () => {
   it(
     "brings a device that opened a stale link fully up to date",
     async () => {
-      const room = `bracketeer-stale-${Date.now()}-${process.pid}`;
+      const key = `${WRITE_KEY}-stale-${Date.now()}-${process.pid}`;
+      const room = await roomIdFor(key);
 
       // What the organiser has now.
       let current = buildTournament();
@@ -238,6 +301,7 @@ live("the share-link flow", () => {
 
       const session = await openSession(room, {
         readLog: () => organiserLog,
+        password: key,
         onIncoming: (incoming) => {
           organiserLog = mergeLogs(organiserLog, incoming) as EventEnvelope[];
         },
@@ -247,14 +311,14 @@ live("the share-link flow", () => {
       });
 
       // The other device joins holding only the stale snapshot.
-      const other = spawnPeer(room, JSON.stringify(stale));
+      const other = spawnPeer(room, key, wire(stale));
 
       try {
         const gotIt = await waitFor(() => other.received().length > 0, 45_000);
         expect(gotIt, `nothing reached the joining device (${errors.join("; ")})`).toBe(true);
 
         // What it receives carries the results the stale link did not have.
-        const delivered = JSON.parse(other.received()[0] as string) as EventLog;
+        const { log: delivered } = JSON.parse(other.received()[0] as string) as { log: EventLog };
         const merged = replay(mergeLogs(stale, delivered));
         expect(merged.matches.filter((m) => m.result !== null)).toHaveLength(played.length);
 

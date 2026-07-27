@@ -1,0 +1,59 @@
+{
+  "name": "bracketeer-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Run a tournament from a terminal or from a conversation: the Bracketeer engine as a CLI and an MCP server",
+  "license": "MIT",
+  "keywords": [
+    "tournament",
+    "bracket",
+    "swiss",
+    "elo",
+    "cli",
+    "mcp"
+  ],
+  "bin": {
+    "bracketeer": "./dist/cli.mjs",
+    "bracketeer-cli": "./dist/cli.mjs",
+    "bracketeer-mcp": "./dist/mcp.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "pnpm build && vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@bracketeer/engine": "workspace:*",
+    "@bracketeer/presets": "workspace:*",
+    "@types/node": "^22.13.1",
+    "esbuild": "^0.25.12",
+    "fflate": "^0.8.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxgfr/bracketeer.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/maxgfr/bracketeer/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/maxgfr/bracketeer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

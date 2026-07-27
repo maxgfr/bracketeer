@@ -383,14 +383,25 @@ describe("score entry over the draw", () => {
 });
 
 describe("live sync is discoverable", () => {
-  it("offers a single tap to join when the link carries the invitation", async () => {
+  it("offers a single tap to join when an organiser link carries the invitation", async () => {
     const log = seedTournament(["Marie", "Luc"]);
-    goTo(`#/t/demo?d=${encode(log)}&live=1`);
+    goTo(`#/t/demo?d=${encode(log)}&live=1&k=organiserkey01`);
     render(<App />);
 
     // The person receiving the link is told what it is and given one action.
     expect(await screen.findByText(/being run live/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join" })).toBeInTheDocument();
+  });
+
+  it("does not invite a watch link into a room it could never enter", async () => {
+    // The room is derived from the organiser key, so a link without one cannot
+    // find it. Offering "Join" here would be a button that only ever fails.
+    const log = seedTournament(["Marie", "Luc"]);
+    goTo(`#/t/demo?d=${encode(log)}&live=1`);
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
 
   it("says nothing about live sync on an ordinary link", async () => {
@@ -410,5 +421,14 @@ describe("live sync is discoverable", () => {
 
     // Reachable from every tab, not only from Share.
     expect(await screen.findByRole("button", { name: "Go live" })).toBeInTheDocument();
+  });
+
+  it("does not offer the control to a device holding a watch link", async () => {
+    const log = seedTournament(["Marie", "Luc"]);
+    goTo(`#/t/demo?d=${encode(log)}`);
+    render(<App />);
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByRole("button", { name: "Go live" })).not.toBeInTheDocument();
   });
 });

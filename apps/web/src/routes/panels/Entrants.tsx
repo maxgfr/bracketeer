@@ -187,9 +187,9 @@ export function EntrantsPanel({ store }: { store: Store }) {
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
           Fields you add here appear against every entrant, show in the table, and can be used to
           keep people apart in the draw — pairing has a constraint that avoids matching entrants who
-          share a value. Mark one private and it is left out of anything you share publicly: a
-          phone number or a licence number is not in the watch link at all, rather than hidden
-          inside it.
+          share a value. A new field stays on this device: tick it to put it in what you share. An
+          unticked field is not in the watch link at all, rather than hidden inside it, so a phone
+          number or a licence number cannot be read back out of one.
         </p>
         <ul>
           {fields.map((field) => (
@@ -197,23 +197,28 @@ export function EntrantsPanel({ store }: { store: Store }) {
               <Label>{field.key}</Label>
               <span className="text-ink-2 min-w-24 flex-1 text-sm">{field.label}</span>
               <label className="flex cursor-pointer items-center gap-2">
+                {/*
+                  Ticked means published. The control used to read "Private",
+                  which meant the safe state was the one you had to find and
+                  act on — so the box nobody ticked was the box that leaked.
+                */}
                 <input
                   type="checkbox"
-                  checked={field.private === true}
+                  checked={field.private === false}
                   onChange={(e) =>
                     dispatch({
                       type: "config_replaced",
                       config: {
                         ...state.config,
                         entrantFields: fields.map((f) =>
-                          f.key === field.key ? { ...f, private: e.target.checked } : f,
+                          f.key === field.key ? { ...f, private: !e.target.checked } : f,
                         ),
                       },
                     })
                   }
                   className="border-rule-strong accent-signal size-4"
                 />
-                <Label>Private</Label>
+                <Label>Share</Label>
               </label>
               <Button
                 variant="quiet"
@@ -264,7 +269,12 @@ function AddField({ store }: { store: Store }) {
             type: "config_replaced",
             config: {
               ...state.config,
-              entrantFields: [...state.config.entrantFields, { key, label: label.trim() }],
+              // Explicit rather than leaning on the schema default, so this
+              // stays private even if somebody changes the default back.
+              entrantFields: [
+                ...state.config.entrantFields,
+                { key, label: label.trim(), private: true },
+              ],
             },
           });
           setLabel("");

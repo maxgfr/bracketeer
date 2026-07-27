@@ -17,8 +17,9 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, Route, Routes, useLocation, useParams } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { Button, Notice } from "../components/Sheet.js";
-import { decode, encode } from "../lib/codec.js";
+import { decode } from "../lib/codec.js";
 import { STAGE_LABELS } from "../lib/format.js";
+import { shareLink } from "../lib/share.js";
 import { useTournament } from "../lib/useTournament.js";
 import { PeerBar, usePeers, type PeerState } from "../sync/PeerBar.js";
 import { CalendarPanel } from "./panels/Calendar.js";
@@ -83,7 +84,7 @@ export function TournamentRoute() {
   );
 
   const store = useTournament(id, fromLink, keyFromLink);
-  const peers = usePeers(id, store);
+  const peers = usePeers(store);
   const { state } = store;
 
   useEffect(() => {
@@ -128,7 +129,7 @@ export function TournamentRoute() {
             </div>
           ) : null}
 
-          <LiveBanner peers={peers} invited={invited} />
+          <LiveBanner peers={peers} invited={invited && store.canPush} />
           <ControlStrip store={store} peers={peers} />
 
           <nav className="no-print border-rule-strong mt-6 flex gap-1 overflow-x-auto border-b-2">
@@ -235,18 +236,24 @@ function ControlStrip({
       ) : null}
       {action.note ? <span className="text-ink-2 text-sm">{action.note}</span> : null}
       <div className="ml-auto flex items-center gap-1">
-        {store.canPush ? <ShareLinkButton store={store} peers={peers} /> : null}
-        <Button
-          variant="quiet"
-          onClick={peers.status === "off" || peers.status === "unavailable" ? peers.start : peers.stop}
-          title={
-            peers.status === "live"
-              ? "Stop syncing with other devices"
-              : "Let other phones update this tournament at the same time"
-          }
-        >
-          {peers.status === "live" ? "Live" : peers.status === "connecting" ? "…" : "Go live"}
-        </Button>
+        {store.canPush ? <ShareLinkButton store={store} /> : null}
+        {/* Live sync is between organiser links only, so a watch link is not
+            offered a control it could never complete. */}
+        {store.canPush ? (
+          <Button
+            variant="quiet"
+            onClick={
+              peers.status === "off" || peers.status === "unavailable" ? peers.start : peers.stop
+            }
+            title={
+              peers.status === "live"
+                ? "Stop syncing with other devices"
+                : "Let other phones update this tournament at the same time"
+            }
+          >
+            {peers.status === "live" ? "Live" : peers.status === "connecting" ? "…" : "Go live"}
+          </Button>
+        ) : null}
         <Button variant="quiet" onClick={store.undo} disabled={!store.canUndo} title="Undo your last change">
           Undo
         </Button>
@@ -262,16 +269,29 @@ function ControlStrip({
  * copying it — the obvious thing to do — sends somebody an address that means
  * nothing on their device. The real link is long and lives on the Share tab,
  * which is no use at the moment you are actually sharing.
+ *
+ * It is deliberately the *watch* link. This is the control people reach for
+ * without thinking, so it has to be the one that gives away least; anybody who
+ * wants to hand over score entry can say so on the Share tab, where the warning
+ * about it is. A convenient control that shares more than the deliberate one is
+ * how private data escapes.
  */
-function ShareLinkButton({ store, peers }: { store: Store; peers: PeerState }) {
+function ShareLinkButton({ store }: { store: Store }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    const encoded = encode(store.log);
-    const origin = `${window.location.origin}${window.location.pathname}`;
-    const live = peers.status === "live" ? "&live=1" : "";
+    const { url } = shareLink({
+      id: store.id,
+      log: store.log,
+      config: store.state.config,
+      audience: "watch",
+      writeKey: store.writeKey,
+      live: false,
+    });
+    if (!url) return;
+
     try {
-      await navigator.clipboard.writeText(`${origin}#/t/${store.id}?d=${encoded}${live}`);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -283,7 +303,7 @@ function ShareLinkButton({ store, peers }: { store: Store; peers: PeerState }) {
     <Button
       variant="quiet"
       onClick={() => void copy()}
-      title="Copy the link that carries this tournament — the address bar does not"
+      title="Copy a watch link — results only, no score entry. The address bar carries nothing."
     >
       {copied ? "Link copied" : "Copy link"}
     </Button>

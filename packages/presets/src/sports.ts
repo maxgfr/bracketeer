@@ -33,7 +33,11 @@ export interface Sport {
   formats: SportFormat[];
 }
 
-const AFFILIATION = [{ key: "affiliation", label: "Club or team" }];
+/**
+ * Published explicitly, because fields default to private and a club name is
+ * the one piece of entrant data that belongs on a public results sheet.
+ */
+const AFFILIATION = [{ key: "affiliation", label: "Club or team", private: false }];
 
 /** A league table with the given points and the usual separators. */
 const table = (win: number, draw: number, loss = 0) => ({

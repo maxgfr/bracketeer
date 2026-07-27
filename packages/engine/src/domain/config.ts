@@ -566,8 +566,14 @@ export const tournamentConfigSchema = z.object({
          * number, an emergency contact. Without a server this cannot mean
          * "permission", so it means the value is absent from the public link
          * rather than hidden inside it.
+         *
+         * Private is the default, and the default is the whole point. An
+         * organiser who adds a "Phone" column is not thinking about sharing at
+         * that moment, and the field that leaks is always the one nobody
+         * remembered to tick. Publishing is the deliberate act; say
+         * `private: false` for a club or a country, which belong on the sheet.
          */
-        private: z.boolean().default(false),
+        private: z.boolean().default(true),
       }),
     )
     .default([]),

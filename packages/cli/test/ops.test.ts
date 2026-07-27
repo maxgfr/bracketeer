@@ -1,0 +1,171 @@
+/**
+ * The operations both front ends drive.
+ *
+ * The emphasis is on the two places a conversation actually goes wrong: writing
+ * a score in whatever notation came to mind, and naming a fixture by the people
+ * in it rather than by an id nobody has seen.
+ */
+
+import { parseConfig, replay, type EventLog } from "@bracketeer/engine";
+import { describe, expect, it } from "vitest";
+import * as ops from "../src/ops.js";
+
+function started(shape = "knockout", names = ["Marie", "Luc", "Ana", "Paul"]): EventLog {
+  const { log } = ops.create({ shape, entrants: names, seed: 7, actor: "test" });
+  return ops.start(log, { actor: "test" }).log;
+}
+
+describe("reading a score somebody typed", () => {
+  const points = parseConfig({ score: { kind: "points", target: 13 } }).score;
+
+  it.each([
+    ["13-7", [13, 7]],
+    ["13–7", [13, 7]],
+    ["13:7", [13, 7]],
+    ["13 - 7", [13, 7]],
+    ["13 x 7", [13, 7]],
+  ])("reads %s the same way", (input, expected) => {
+    expect(ops.parseScore(points, input)).toEqual({ kind: "points", scores: expected });
+  });
+
+  it("reads sets as a list of them", () => {
+    const sets = parseConfig({ score: { kind: "sets", bestOf: 3 } }).score;
+    expect(ops.parseScore(sets, "11-9,9-11,11-6")).toEqual({
+      kind: "sets",
+      sets: [
+        [11, 9],
+        [9, 11],
+        [11, 6],
+      ],
+    });
+  });
+
+  it("reads a bare winner, and a draw", () => {
+    const outcome = parseConfig({ score: { kind: "outcome" } }).score;
+    expect(ops.parseScore(outcome, "1")).toEqual({ kind: "outcome", winner: 0 });
+    expect(ops.parseScore(outcome, "draw")).toEqual({ kind: "outcome", winner: null });
+  });
+
+  it("reads finishing places as one tier per position", () => {
+    const placement = parseConfig({ score: { kind: "placement" } }).score;
+    // Side 1 came second, side 2 first, side 3 third.
+    expect(ops.parseScore(placement, "2,1,3")).toEqual({
+      kind: "placement",
+      places: [[1], [0], [2]],
+    });
+  });
+
+  it("reads times, and lets somebody not finish", () => {
+    const time = parseConfig({ score: { kind: "time" } }).score;
+    expect(ops.parseScore(time, "10.2,11.4")).toEqual({ kind: "time", times: [10.2, 11.4] });
+    expect(ops.parseScore(time, "10.2,dnf")).toEqual({ kind: "time", times: [10.2, null] });
+  });
+
+  it("says what it wanted rather than guessing", () => {
+    expect(() => ops.parseScore(points, "hello")).toThrow(/13-7/);
+  });
+});
+
+describe("naming a fixture the way people do", () => {
+  it("finds one by the two entrants in it", () => {
+    const log = started();
+    const ready = ops.listMatches(log, { only: "ready" });
+    const [a, b] = ready[0]!.sides.map((s) => s.entrant!);
+
+    expect(ops.resolveMatch(replay(log), `${a} v ${b}`).id).toBe(ready[0]!.id);
+    expect(ops.resolveMatch(replay(log), `${a} vs ${b}`).id).toBe(ready[0]!.id);
+  });
+
+  it("still takes the id, which is what a script will use", () => {
+    const log = started();
+    const first = ops.listMatches(log, { only: "ready" })[0]!;
+    expect(ops.resolveMatch(replay(log), first.id).id).toBe(first.id);
+  });
+
+  it("points at the list rather than failing silently", () => {
+    expect(() => ops.resolveMatch(replay(started()), "nobody v nobody")).toThrow(/No entrant/);
+  });
+});
+
+describe("running one through", () => {
+  it("says what to do next at every point", () => {
+    const fresh = ops.create({ shape: "knockout", entrants: [], seed: 7, actor: "test" });
+    expect(ops.status(fresh.log).next).toMatch(/Add entrants/);
+
+    const withPeople = ops.addEntrants(fresh.log, {
+      names: ["Marie", "Luc", "Ana", "Paul"],
+      actor: "test",
+    }).log;
+    expect(ops.status(withPeople).next).toMatch(/Start the stage/);
+
+    const open = ops.start(withPeople, { actor: "test" }).log;
+    expect(ops.status(open).next).toMatch(/Report 2 results/);
+  });
+
+  it("reports waiting rather than erroring when results are outstanding", () => {
+    const outcome = ops.advance(started(), { actor: "test" });
+    expect(outcome.result.moved).toBe(false);
+    expect(outcome.result.note).toMatch(/Waiting on 2/);
+  });
+
+  it("carries a result through to the next round", () => {
+    let log = started();
+    for (const match of ops.listMatches(log, { only: "ready" })) {
+      log = ops.report(log, { match: match.id, score: "13-7", actor: "test" }).log;
+    }
+
+    expect(ops.advance(log, { actor: "test" }).result.moved).toBe(false);
+    // A knockout feeds itself, so the final is ready without an explicit advance.
+    const final = ops.listMatches(log, { only: "ready" });
+    expect(final).toHaveLength(1);
+    expect(final[0]!.sides.every((s) => s.entrant !== null)).toBe(true);
+  });
+
+  it("undoes the last change made by this actor", () => {
+    let log = started();
+    const before = log.length;
+    log = ops.report(log, {
+      match: ops.listMatches(log, { only: "ready" })[0]!.id,
+      score: "13-7",
+      actor: "test",
+    }).log;
+
+    expect(ops.undo(log, "test").log.length).toBe(before);
+  });
+
+  it("keeps a withdrawn entrant's played matches in the record", () => {
+    const log = ops.setEntrantStatus(started(), {
+      entrant: "Marie",
+      status: "withdrawn",
+      actor: "test",
+    }).log;
+
+    expect(ops.listEntrants(log).find((e) => e.name === "Marie")?.status).toBe("withdrawn");
+    expect(ops.listMatches(log).length).toBeGreaterThan(0);
+  });
+});
+
+describe("choosing a starting point", () => {
+  it("resolves a shape by id", () => {
+    expect(ops.resolveStart({ shape: "all-play-all" }).config).toBeTruthy();
+  });
+
+  it("resolves a sport to its first format when no format is named", () => {
+    const start = ops.resolveStart({ sport: "petanque" });
+    expect(start.name).toMatch(/—/);
+    expect(parseConfig(start.config)).toBeTruthy();
+  });
+
+  it("says where to look when the name is wrong", () => {
+    expect(() => ops.resolveStart({ shape: "quidditch" })).toThrow(/bracketeer shapes/);
+    expect(() => ops.resolveStart({ sport: "quidditch" })).toThrow(/bracketeer sports/);
+  });
+
+  it("offers every shape with something to show for it", () => {
+    for (const shape of ops.listShapes()) {
+      expect(shape.name).toBeTruthy();
+      expect(shape.summary).toBeTruthy();
+    }
+    expect(ops.listShapes().length).toBeGreaterThan(10);
+  });
+});

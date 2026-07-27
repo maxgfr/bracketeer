@@ -245,11 +245,31 @@ reported, never blocked.
 ## Custom entrant fields
 
 ```jsonc
-{ "entrantFields": [{ "key": "club", "label": "Club" }] }
+{
+  "entrantFields": [
+    { "key": "club", "label": "Club", "private": false },
+    { "key": "phone", "label": "Phone" }
+  ]
+}
 ```
 
 These appear against every entrant, show in the table, and can be referenced by
 `pairing.constraints.avoidSameMeta.field`.
+
+**`private` defaults to `true`.** A field is kept to the organiser's device
+unless it says otherwise, so the example above publishes the club and keeps the
+phone number. "Private" here means *absent* rather than protected: the value and
+the field definition are both removed from anything shared with a watching
+audience, so there is nothing in the link to read back out. Leaving the
+definition in would give the public copy an empty column for every entrant and
+quietly announce that you collect phone numbers, which is most of what was meant
+to stay private.
+
+Publish a field by saying so:
+
+```jsonc
+{ "entrantFields": [{ "key": "country", "label": "Country", "private": false }] }
+```
 
 ---
 

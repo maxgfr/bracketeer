@@ -14,7 +14,8 @@
     "entrantFields": [
       {
         "key": "affiliation",
-        "label": "Club or team"
+        "label": "Club or team",
+        "private": false
       }
     ]
   }

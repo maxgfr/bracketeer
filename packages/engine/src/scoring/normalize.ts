@@ -239,3 +239,37 @@ export function loserEntrantId(match: Match, config: ScoreConfig): string | null
   if (!outcome || outcome.winner === null) return null;
   return match.sides[outcome.winner === 0 ? 1 : 0]?.entrantId ?? null;
 }
+
+/**
+ * A result of the right shape for this score kind, with the first side winning.
+ *
+ * This is here rather than next to its caller because of the rule the seam
+ * exists to enforce: `score.kind` is switched on in this file and nowhere else,
+ * and that has to hold for *writing* a result as well as reading one. A second
+ * switch elsewhere is how a new score kind comes to be half-supported — accepted
+ * by the parser, understood by the standings, and silently skipped by whatever
+ * had its own copy of the list.
+ *
+ * Used to play a configuration through without anybody entering scores, which is
+ * how the app draws a structure it can prove the rules produce.
+ */
+export function nominalResult(config: ScoreConfig, sideCount: number): MatchResult {
+  switch (config.kind) {
+    case "points":
+      return {
+        kind: "points",
+        scores: Array.from({ length: sideCount }, (_, i) => (i === 0 ? (config.target ?? 13) : 5)),
+      };
+    case "sets":
+      return {
+        kind: "sets",
+        sets: [Array.from({ length: sideCount }, (_, i) => (i === 0 ? 11 : 5))],
+      };
+    case "outcome":
+      return { kind: "outcome", winner: 0 };
+    case "placement":
+      return { kind: "placement", places: Array.from({ length: sideCount }, (_, i) => [i]) };
+    case "time":
+      return { kind: "time", times: Array.from({ length: sideCount }, (_, i) => 10 + i) };
+  }
+}

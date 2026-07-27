@@ -2,7 +2,7 @@
  * A schematic of what a shape actually does.
  *
  * Drawn from the structure the engine produced, not from a description of it —
- * see `lib/shape.ts`. Every line here corresponds to a fixture that exists.
+ * see `simulate/` in the engine. Every line here corresponds to a fixture that exists.
  *
  * The language is the sheet's: hairlines, right angles, one signal colour for
  * the thing that makes this shape different from its neighbours. No labels
@@ -10,8 +10,7 @@
  */
 
 import { useMemo } from "react";
-import type { BracketShape, Shape, StageShape } from "../lib/shape.js";
-import { readShape } from "../lib/shape.js";
+import { readShape, type BracketShape, type Shape, type StageShape } from "@bracketeer/engine";
 import type { TournamentConfigInput } from "@bracketeer/engine";
 
 const HEIGHT = 96;

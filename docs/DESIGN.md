@@ -119,16 +119,35 @@ components and catch the wiring that engine unit tests cannot.
 ## Honest limits
 
 - **Private means absent, not protected.** With no server there is no login, so
-  a field marked private is *removed* from the watch link rather than hidden
-  inside it — values and definitions both. What this cannot do is stop somebody
-  holding a watch link from editing their own copy on their own device; nothing
-  without a server can, and it changes nothing for anybody else, because peers
-  refuse changes that do not carry the organiser key.
+  a private field is *removed* from the watch link rather than hidden inside it —
+  values and definitions both. What this cannot do is stop somebody holding a
+  watch link from editing their own copy on their own device; nothing without a
+  server can, and it changes nothing for anybody else, because their events never
+  reach a peer.
+- **A field is private until it is published.** The default is `private: true`,
+  and that direction is the whole point: an organiser adding a "Phone" column is
+  not thinking about sharing at that moment, and the field that leaks is always
+  the one nobody remembered to tick. Presets that want a column on the public
+  sheet — a club name — say `private: false` explicitly. A log written before this
+  default changed, which never stated `private` at all, now decodes as private, so
+  such a field disappears from new watch links. That is the safe direction.
 - **The organiser key is a shared secret, not authentication.** It is random and
   kept on the device, never derived from the tournament id — an id travels in
   every link, so anything computed from it could be recomputed by exactly the
   people it excludes. It stops the wrong link being used by accident, which is
   the failure that actually happens.
+- **Live sync is between organiser links only, and the key never goes on the
+  wire.** The room is `SHA-256` of the key, so finding it already requires holding
+  it; membership *is* the credential, and messages carry no proof of one. An
+  earlier version named the room after the tournament id and put the key in every
+  message, which meant anybody holding a watch link could join and read both the
+  unredacted log and the key. A watch link now cannot join at all, and the
+  interface says so rather than offering a button that fails.
+- **One builder makes every link.** The control-strip "Copy link" and the Share
+  tab call the same function, because when they each assembled their own URL they
+  disagreed — and the convenient one was the one that skipped redaction. The CLI
+  calls the engine's `logFor` for the same reason: two implementations of "what a
+  spectator may see" is one implementation and one accident waiting.
 - **Peer-to-peer sync depends on infrastructure we do not control.** Devices meet
   through public relays, and it only works while at least one participant has the
   page open. Some networks block it. The app says so on the page rather than in a

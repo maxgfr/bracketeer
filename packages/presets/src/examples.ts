@@ -76,7 +76,11 @@ export interface Example {
 }
 
 /** A field organisers commonly want kept apart in the draw, named generically. */
-const AFFILIATION = [{ key: "affiliation", label: "Club or team" }];
+/**
+ * Published explicitly, because fields default to private and a club name is
+ * the one piece of entrant data that belongs on a public results sheet.
+ */
+const AFFILIATION = [{ key: "affiliation", label: "Club or team", private: false }];
 
 export const EXAMPLES: Example[] = [
   /* ── Losing matters ─────────────────────────────────────────────────────── */

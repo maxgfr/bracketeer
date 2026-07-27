@@ -11,13 +11,24 @@
 import { joinRoom } from "trystero/nostr";
 import { RTCPeerConnection } from "werift";
 
-const [, , roomId, appId, actionName, payloadToSend] = process.argv;
+const [, , roomId, appId, actionName, password, payloadToSend] = process.argv;
 
 const say = (event, data) => console.log(JSON.stringify({ event, data }));
 
-const room = joinRoom({ appId, rtcPolyfill: RTCPeerConnection }, roomId, {
-  onJoinError: (details) => say("join-error", String(details?.error ?? "unknown")),
-});
+// An empty password is passed as the literal "-" so an absent one can be told
+// apart from an empty argv slot — that distinction is the point of one of the
+// tests, which spawns a peer holding no key at all.
+const room = joinRoom(
+  {
+    appId,
+    rtcPolyfill: RTCPeerConnection,
+    ...(password && password !== "-" ? { password } : {}),
+  },
+  roomId,
+  {
+    onJoinError: (details) => say("join-error", String(details?.error ?? "unknown")),
+  },
+);
 
 const action = room.makeAction(actionName);
 

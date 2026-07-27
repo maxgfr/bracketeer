@@ -50,22 +50,56 @@ turned a games night into a rated championship. Nothing in the engine noticed.
 ## Sharing without a server
 
 Bracketeer is a static site on GitHub Pages, so there is nothing to host and nothing to trust.
+Nothing is listed anywhere; a tournament exists on the device that made it, and in whatever you
+deliberately send.
 
 - **Two links** — a **watch** link with private fields stripped out and no key, and an
   **organiser** link that carries everything and lets that device enter scores. The tournament's
   event log is compressed into the URL either way.
   A played 16-entrant knockout with a consolation bracket comes to under 4 kB, and it is
   self-contained: it works forever, with no server holding a copy.
+  Every control that shares — the one in the toolbar, the one on the Share tab, the CLI — builds
+  its link with the same function, and the watch link is the default everywhere.
+- **Private by default** — a custom entrant field (a phone number, a licence number, an emergency
+  contact) stays on your device until you tick it to share. Private means *absent*: the value and
+  the column are both missing from the watch link, rather than hidden inside it.
 - **A file** — JSON export, any time. This is the copy to keep.
-- **Live sync** — several phones can update the same tournament at once, peer to peer. Turn it on
-  and the share link carries the invitation, so whoever opens it gets one tap to join.
+- **Live sync** — several phones can update the same tournament at once, peer to peer. It is
+  between **organiser links only**: the room is derived from the organiser key, so finding it
+  already means holding it, and the key itself never goes on the wire. A watch link cannot join,
+  and the app says so instead of offering a button that fails.
 - **Print and embed** — the sheet prints properly, and `/embed/:id` gives a read-only view for a
-  club website.
+  club website, carrying the same redaction as the watch link.
 - **Offline** — a service worker caches the app, because sports halls have bad signal.
 
-**Honest limitation:** peer-to-peer sync introduces devices to each other through public
+**Honest limitations:** peer-to-peer sync introduces devices to each other through public
 third-party relays, and only works while at least one participant has the page open. Some networks
-block it. The app says so on the page. The link and the file are the copies that last.
+block it. The app says so on the page. And a watch link cannot be un-sent — whoever has it keeps a
+copy of what it carried. The link and the file are the copies that last.
+
+## From a terminal, or a conversation
+
+The engine is not only for the browser. [`bracketeer-cli`](packages/cli) runs a whole tournament from the command line,
+and `bracketeer-mcp` offers the same operations as MCP tools, so an agent can be asked to run the
+club night and hand back a link that opens in the site.
+
+```bash
+npx bracketeer-cli new --sport petanque --entrants "Marie,Luc,Ana,Paul" --json
+npx bracketeer-cli status <id>      # says the one thing to do next
+npx bracketeer-cli report <id> "Marie v Luc" --score "13-7"
+npx bracketeer-cli standings <id>
+npx bracketeer-cli link <id>        # a watch link, ready to paste into the site
+```
+
+There is an [agent skill](skills/bracketeer/SKILL.md) that teaches this, installable into any of
+seventy-odd coding agents:
+
+```bash
+npx skills add maxgfr/bracketeer          # -g for every project
+```
+
+Its claims are tested rather than trusted — `packages/cli/test/skill.test.ts` fails if the skill
+names a command that does not exist or a score notation the parser would reject.
 
 ## Ratings
 
@@ -81,15 +115,20 @@ rounds ago fixes every rating downstream of it.
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 226 engine tests + 498 app tests
+pnpm test         # 258 engine + 371 preset + 95 cli + 127 app tests
 pnpm typecheck
 pnpm build
 ```
 
 ```
-packages/engine   Pure TypeScript — formats, pairing, standings, ratings, scheduling.
-                  No DOM, no React, no network. This is where the rules live.
+packages/engine   Pure TypeScript — formats, pairing, standings, ratings, scheduling,
+                  redaction. No DOM, no React, no network. This is where the rules live.
+packages/presets  Shapes and sports, as data. Outside the engine because the engine
+                  must never contain the name of a sport, and a test enforces that.
+packages/cli      The `bracketeer` command and the MCP server, over one set of
+                  operations so the two front ends cannot disagree.
 apps/web          Vite + React + Tailwind. Rendering and interaction only.
+skills/           The agent skill, installable with `npx skills add`.
 examples/         Composed configurations, as data rather than code.
 docs/             CONFIG.md is the reference. DESIGN.md is why the code looks like this.
 ```

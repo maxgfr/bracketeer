@@ -6,7 +6,13 @@
  * whether or not the organiser's browser is open.
  */
 
-import { overallStandings, replay, stageStandings, type EventLog } from "@bracketeer/engine";
+import {
+  logFor,
+  overallStandings,
+  replay,
+  stageStandings,
+  type EventLog,
+} from "@bracketeer/engine";
 import { useMemo } from "react";
 import { useLocation, useParams } from "react-router";
 import { StandingsTable } from "../components/StandingsTable.js";
@@ -28,7 +34,15 @@ export function EmbedRoute() {
         return [];
       }
     }
-    return loadLog(id) ?? [];
+
+    /*
+     * Falling back to the local copy is how an organiser previews their own
+     * embed — but the local copy is the unredacted one, and an embed is a
+     * public surface by definition. Redact it the same way the link would be,
+     * so what they preview is what a visitor would actually see.
+     */
+    const local = loadLog(id) ?? [];
+    return logFor(local, replay(local).config, "watch");
   }, [location.search, id]);
 
   const state = useMemo(() => replay(log), [log]);

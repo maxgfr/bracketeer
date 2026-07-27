@@ -10,25 +10,28 @@
  * So the question this page asks first is: who is this for?
  *
  *   · Somebody watching gets the results with private fields stripped out and
- *     no key, so they cannot push changes to anybody.
+ *     no key, so they cannot push changes to anybody and cannot join live sync.
  *   · Somebody helping run it gets everything, and can enter scores.
+ *
+ * The link itself is built by `lib/share.ts`, which the control strip's copy
+ * button also calls. This page used to assemble its own URL and so did that
+ * button, and they disagreed — the convenient one skipped redaction entirely.
  */
 
-import { toJsonFile, urlSizeVerdict } from "@bracketeer/engine";
-import { useMemo, useState } from "react";
-import { Button, Field, inputClass, Notice, Section } from "../../components/Sheet.js";
-import { encode } from "../../lib/codec.js";
 import {
   entrantsWithPrivateData,
   hasPrivateValues,
+  logFor,
   privateFieldKeys,
-  redactPrivate,
-} from "../../lib/privacy.js";
+  toJsonFile,
+  type Audience,
+} from "@bracketeer/engine";
+import { useMemo, useState } from "react";
+import { Button, Field, inputClass, Notice, Section } from "../../components/Sheet.js";
+import { embedLink, embedSnippet, shareLink } from "../../lib/share.js";
 import type { PeerState } from "../../sync/PeerBar.js";
 import { slug } from "./Calendar.js";
 import type { Store } from "../Tournament.js";
-
-type Audience = "watch" | "run";
 
 export function SharePanel({ store, peers }: { store: Store; peers: PeerState }) {
   const { state, log, id } = store;
@@ -36,25 +39,27 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
   const [copied, setCopied] = useState<string | null>(null);
 
   const secret = useMemo(() => privateFieldKeys(state.config), [state.config]);
-  const redacted = useMemo(() => redactPrivate(log, secret), [log, secret]);
   const holdsPrivate = useMemo(() => hasPrivateValues(log, secret), [log, secret]);
   const affected = useMemo(() => entrantsWithPrivateData(log, secret), [log, secret]);
 
-  const encoded = useMemo(() => {
-    try {
-      return encode(audience === "watch" ? redacted : log);
-    } catch {
-      return null;
-    }
-  }, [audience, log, redacted]);
+  const link = useMemo(
+    () =>
+      shareLink({
+        id,
+        log,
+        config: state.config,
+        audience,
+        writeKey: store.writeKey,
+        live: peers.status === "live",
+      }),
+    [id, log, state.config, audience, store.writeKey, peers.status],
+  );
+  const embed = useMemo(() => embedLink(id, log, state.config), [id, log, state.config]);
 
-  const origin = `${window.location.origin}${window.location.pathname}`;
-  const live = peers.status === "live" ? "&live=1" : "";
-  // The key is what a device needs to push changes. A watch link has none.
-  const key = audience === "run" ? `&k=${store.writeKey}` : "";
-  const shareUrl = encoded ? `${origin}#/t/${id}?d=${encoded}${live}${key}` : "";
-  const embedUrl = encoded ? `${origin}#/embed/${id}?d=${encode(redacted)}` : "";
-  const verdict = encoded ? urlSizeVerdict(encoded) : "too_long";
+  const shareUrl = link.url;
+  const embedUrl = embed.url;
+  const encoded = link.encoded;
+  const verdict = link.verdict;
 
   const copy = async (value: string, which: string) => {
     try {
@@ -67,9 +72,11 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
   };
 
   const download = (whole: boolean) => {
-    const blob = new Blob([toJsonFile(whole ? log : redacted, new Date().toISOString())], {
-      type: "application/json",
-    });
+    const audienceOf: Audience = whole ? "run" : "watch";
+    const blob = new Blob(
+      [toJsonFile(logFor(log, state.config, audienceOf), new Date().toISOString())],
+      { type: "application/json" },
+    );
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -167,8 +174,8 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
         <p className="text-ink-2 max-w-[68ch] py-4 text-sm leading-relaxed">
           With this on, every device holding an organiser link updates the same tournament at once,
           and a score entered on one appears on the others within seconds. A device that drops out
-          catches up when it returns. A watch link can read what arrives but cannot push anything
-          back.
+          catches up when it returns. This is only between organiser links: a watch link cannot
+          join, and cannot see what is being said. Spectators get the link or the file.
         </p>
 
         <Notice>
@@ -178,7 +185,11 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
         </Notice>
 
         <div className="flex flex-wrap items-center gap-3 py-5">
-          {peers.status === "off" || peers.status === "unavailable" ? (
+          {!store.canPush ? (
+            <span className="text-ink-2 text-sm">
+              This device opened a watch link, so it cannot join. Live sync needs an organiser link.
+            </span>
+          ) : peers.status === "off" || peers.status === "unavailable" ? (
             <Button variant="primary" onClick={peers.start}>
               Turn on live
             </Button>
@@ -205,26 +216,19 @@ export function SharePanel({ store, peers }: { store: Store; peers: PeerState })
           Put the results on a club website. The embedded view has no controls and no navigation,
           and carries the same redaction as the watch link.
         </p>
-        {verdict !== "too_long" ? (
+        {embed.verdict !== "too_long" ? (
           <>
             <Field label="Paste into your page">
               <textarea
                 readOnly
                 rows={3}
-                value={`<iframe src="${embedUrl}" width="100%" height="600" style="border:1px solid #ddd" title="${state.name}"></iframe>`}
+                value={embedSnippet(embedUrl, state.name)}
                 onFocus={(e) => e.currentTarget.select()}
                 className={`${inputClass} resize-y font-mono text-xs`}
               />
             </Field>
             <div className="mt-3">
-              <Button
-                onClick={() =>
-                  void copy(
-                    `<iframe src="${embedUrl}" width="100%" height="600" style="border:1px solid #ddd" title="${state.name}"></iframe>`,
-                    "embed",
-                  )
-                }
-              >
+              <Button onClick={() => void copy(embedSnippet(embedUrl, state.name), "embed")}>
                 {copied === "embed" ? "Copied" : "Copy embed code"}
               </Button>
             </div>

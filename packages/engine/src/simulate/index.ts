@@ -2,30 +2,26 @@
  * The structure of a shape, read from the engine rather than drawn by hand.
  *
  * A hand-drawn diagram is a second description of the rules, and second
- * descriptions drift — which is exactly how the old pétanque example came to
- * promise a consolation bracket it did not have. So a sample tournament is
- * actually built and played, and the picture is traced from what came out. If
- * the structure changes, the diagram changes with it or the tests fail.
+ * descriptions drift — one shipped example once promised a consolation bracket
+ * its configuration could not produce, and said so for months. So a sample
+ * tournament is actually built and played, and the picture is traced from what
+ * came out. If the structure changes, the diagram changes with it or the tests
+ * fail.
  */
 
 import {
-  advanceStage,
-  isStageComplete,
   addEntrant,
-  appendEvent,
+  advanceStage,
   createTournament,
+  isStageComplete,
   nextStageToStart,
-  parseConfig,
-  replay,
   startStage,
-  type BracketSlot,
-  type DomainEvent,
-  type EventLog,
-  type Match,
-  type MatchResult,
-  type TournamentConfigInput,
-  type TournamentState,
-} from "@bracketeer/engine";
+} from "../commands/index.js";
+import { parseConfig, type TournamentConfigInput } from "../domain/config.js";
+import type { BracketSlot, Match, TournamentState } from "../domain/entities.js";
+import { nominalResult } from "../scoring/normalize.js";
+import { replay } from "../events/reducer.js";
+import { appendEvent, type DomainEvent, type EventLog } from "../events/types.js";
 
 export interface BracketShape {
   slot: BracketSlot;
@@ -56,24 +52,6 @@ export interface Shape {
   entrants: number;
 }
 
-/** A result in whatever shape the configured score kind calls for. */
-function sampleResult(state: TournamentState, match: Match): MatchResult {
-  const score = state.config.score;
-  const sides = match.sides.length;
-  switch (score.kind) {
-    case "points":
-      return { kind: "points", scores: match.sides.map((_, i) => (i === 0 ? (score.target ?? 13) : 5)) };
-    case "sets":
-      return { kind: "sets", sets: [match.sides.map((_, i) => (i === 0 ? 11 : 5))] };
-    case "outcome":
-      return { kind: "outcome", winner: 0 };
-    case "placement":
-      return { kind: "placement", places: Array.from({ length: sides }, (_, i) => [i]) };
-    case "time":
-      return { kind: "time", times: match.sides.map((_, i) => 10 + i) };
-  }
-}
-
 /**
  * Build and play a sample tournament, so the structure is the real one.
  *
@@ -81,11 +59,14 @@ function sampleResult(state: TournamentState, match: Match): MatchResult {
  * bracket, small enough that the whole thing folds in a millisecond.
  */
 function playSample(config: TournamentConfigInput, entrants: number): TournamentState {
+  // Both constants are literals rather than derived from a clock: nothing in the
+  // engine may read the time, because two devices replaying one log have to
+  // reach identical state. `architecture.test.ts` enforces it.
   const at = 1_700_000_000_000;
   let log: EventLog = appendEvent(
     [],
     "d",
-    createTournament({ name: "sample", config, seed: 7, createdAt: new Date(at).toISOString() }),
+    createTournament({ name: "sample", config, seed: 7, createdAt: "2023-11-14T22:13:20.000Z" }),
     at,
   );
 
@@ -110,7 +91,7 @@ function playSample(config: TournamentConfigInput, entrants: number): Tournament
     const ready = state.matches.filter((m) => m.status === "ready");
     if (ready.length > 0) {
       for (const match of ready) {
-        apply([{ type: "result_reported", matchId: match.id, result: sampleResult(state, match) }]);
+        apply([{ type: "result_reported", matchId: match.id, result: nominalResult(state.config.score, match.sides.length) }]);
       }
       continue;
     }

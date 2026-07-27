@@ -13,9 +13,8 @@ import { useNavigate } from "react-router";
 import { Masthead } from "../components/Masthead.js";
 import { ShapeDiagram } from "../components/ShapeDiagram.js";
 import { Button, Field, inputClass, Label, Notice, Section } from "../components/Sheet.js";
-import { CATEGORIES, examplesIn, EXAMPLES } from "../lib/examples.js";
+import { ALL_FORMATS, CATEGORIES, examplesIn, EXAMPLES, SPORTS } from "@bracketeer/presets";
 import { numberedName, suggestName } from "../lib/names.js";
-import { ALL_FORMATS, SPORTS } from "../lib/sports.js";
 import { actorId, listTournaments, randomId, randomSeed, saveLog } from "../lib/storage.js";
 
 export function NewTournament() {
