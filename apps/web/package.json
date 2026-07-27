@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@bracketeer/engine": "workspace:*",
@@ -22,6 +23,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/vite": "^4.0.6",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",

@@ -98,6 +98,16 @@ seventy-odd coding agents:
 npx skills add maxgfr/bracketeer          # -g for every project
 ```
 
+And the engine is importable from the same package, in ESM or CommonJS, with types:
+
+```ts
+import { parseConfig, replay, appendEvent, createTournament, logFor } from "bracketeer-cli";
+import { EXAMPLES, SPORTS } from "bracketeer-cli/presets";
+```
+
+See [`packages/cli/README.md`](packages/cli/README.md). It is one package rather than
+three because one package is one publication to keep in step.
+
 Its claims are tested rather than trusted — `packages/cli/test/skill.test.ts` fails if the skill
 names a command that does not exist or a score notation the parser would reject.
 

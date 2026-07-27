@@ -63,3 +63,16 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # The one claim the unit tests structurally cannot make: what a stranger
+      # sees when they open a share link. Runs against the built bundle, under
+      # the real base path, in the Chrome the runner already has.
+      - name: Browser tests
+        run: pnpm --filter @bracketeer/web test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

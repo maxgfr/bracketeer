@@ -17,8 +17,6 @@
  * reproducible, mergeable across peers, and undoable for free.
  */
 
-export const VERSION = "0.1.0";
-
 export * from "./codec/index.js";
 export * from "./commands/index.js";
 export * from "./domain/config.js";

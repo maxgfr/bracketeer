@@ -54,12 +54,17 @@ jobs:
       - name: Build the site
         run: pnpm build
 
+      # No npm token. The package uses npm trusted publishing, so
+      # @semantic-release/npm exchanges this job's OIDC token for a short-lived
+      # credential — which is why `id-token: write` above is not optional.
+      #
+      # Passing an empty NPM_TOKEN here would be worse than passing none: the
+      # plugin would see a token, take the token path, and fail EINVALIDNPMTOKEN
+      # without ever attempting the exchange.
+      #
+      # The trusted publisher on npmjs.com is keyed to the repository *and the
+      # workflow filename*, so this file cannot be renamed without updating it.
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Must be an npm **automation** token: this account has 2FA on, and
-          # any other token type will stop and ask for a one-time password that
-          # nothing here can answer.
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
         run: pnpm release

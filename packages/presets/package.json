@@ -1,6 +1,7 @@
 {
   "name": "@bracketeer/presets",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "description": "Starting points: shapes named for the question they answer, and sports as points in the same configuration space",
   "license": "MIT",
@@ -13,12 +14,14 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:types": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "@bracketeer/engine": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.13.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }
