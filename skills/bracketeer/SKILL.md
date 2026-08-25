@@ -24,8 +24,9 @@ npx -y bracketeer-cli@latest help   # not installed
 node packages/cli/dist/cli.mjs help # inside the bracketeer repo, after `pnpm --filter bracketeer build`
 ```
 
-Tournaments are files in `~/.bracketeer`. Every command takes `--json`, and you
-should almost always pass it — the plain output is columns for a human.
+Tournaments are files in `~/.bracketeer` by default; set `BRACKETEER_HOME` to an
+isolated directory for tests or sandboxed runs. Every command takes `--json`,
+and you should almost always pass it — the plain output is columns for a human.
 
 There is also an MCP server (`bracketeer-mcp`) exposing the same operations as
 tools: `create_tournament`, `add_entrants`, `start_stage`, `list_matches`,
