@@ -1,6 +1,9 @@
 ---
 name: bracketeer
-description: Use when someone wants to run a competition — a tournament, bracket, league, ladder, poule, knockout, round robin, Swiss event, club night or games night — and needs the draw made, fixtures listed, scores recorded, standings and tiebreaks worked out, ratings tracked, or a link to share with players and spectators. Also for questions like "what format should I use for 11 people", "how many rounds for 32", "who is top on countback", "make me a bracket", or "seed these teams". Works for any sport or game, and for none.
+description: Plan competitions, generate fixtures, record scores, calculate standings, and share tournament results.
+disable-model-invocation: true
+metadata:
+  opencode/autoinvoke: 'false'
 ---
 
 # Running a tournament
