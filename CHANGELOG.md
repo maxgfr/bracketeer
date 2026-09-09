@@ -2,6 +2,13 @@
 
 What changed in each release, generated from the commit messages.
 
+## [0.2.3](https://github.com/maxgfr/bracketeer/compare/v0.2.2...v0.2.3) (2026-09-09)
+
+
+### Bug Fixes
+
+* **skills:** preserve manual invocation across agent hosts ([9623a68](https://github.com/maxgfr/bracketeer/commit/9623a68af3772143183b62180f6edfe815ace51b))
+
 ## [0.2.2](https://github.com/maxgfr/bracketeer/compare/v0.2.1...v0.2.2) (2026-08-25)
 
 
