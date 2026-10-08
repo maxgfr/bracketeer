@@ -217,11 +217,21 @@ expressed by composing the axes above, that gap in the model is itself worth an 
 
 MIT
 
-## Manual skill invocation
+## Skill invocation: on request or explicit-only
 
-These skills run when explicitly invoked: `bracketeer`. Use `$name` in Codex or `/name` in Claude Code and OpenCode (with the plugin namespace when installed as a Claude plugin).
+The `bracketeer` skill ships **model-invocable, on request**: its description restricts it to explicit requests, so the agent calls it when you ask for it, not on its own. Invoking it by name always works: `$bracketeer` in Codex or `/bracketeer` in Claude Code and OpenCode (with the plugin namespace when installed as a Claude plugin).
 
-The skill bundle disables implicit selection in Codex and Claude Code. OpenCode V2 reads `metadata.opencode/autoinvoke: "false"`. For OpenCode V1, merge these entries into `permission.skill` in `~/.config/opencode/opencode.json` or the project configuration; retain unrelated permissions:
+Making it explicit-only, so that only its name runs it, is one setting per host, applied to the installed copy:
+
+| Host | Shipped, on request | Explicit-only |
+| --- | --- | --- |
+| Claude Code | no `disable-model-invocation` in `SKILL.md` | add `disable-model-invocation: true` |
+| Codex | `allow_implicit_invocation: true` under `policy:` in `agents/openai.yaml` | set it to `false` |
+| OpenCode | `metadata.opencode/autoinvoke: 'true'` in `SKILL.md` | set it to `'false'` |
+
+Claude Code can do it without touching the file: `"skillOverrides": { "bracketeer": "user-invocable-only" }` in `settings.json` leaves `/bracketeer` working while hiding the skill from the model. Updating or reinstalling restores the shipped default, so reapply the change afterwards.
+
+OpenCode V1 reads no `autoinvoke` metadata; `permission.skill` in `~/.config/opencode/opencode.json` or the project configuration is how you force explicit-only there. Retain unrelated permissions:
 
 ```json
 {
@@ -233,4 +243,4 @@ The skill bundle disables implicit selection in Codex and Claude Code. OpenCode 
 }
 ```
 
-On OpenCode 1.18.30, these rules hide the skills from the agent and reject skill-tool loading, while explicit `/name` commands remain available. Installation with `skills add` does not apply this OpenCode V1 configuration.
+On OpenCode 1.18.30, that rule hides the skill from the agent and rejects skill-tool loading, while the explicit `/bracketeer` command remains available. Installation with `skills add` does not apply this OpenCode V1 configuration.
