@@ -2,6 +2,13 @@
 
 What changed in each release, generated from the commit messages.
 
+# [0.3.0](https://github.com/maxgfr/bracketeer/compare/v0.2.3...v0.3.0) (2026-10-08)
+
+
+### Features
+
+* **skill:** let the agent invoke bracketeer on request ([22337c8](https://github.com/maxgfr/bracketeer/commit/22337c82a4011033f8598a9a5bf9304545b40ea0))
+
 ## [0.2.3](https://github.com/maxgfr/bracketeer/compare/v0.2.2...v0.2.3) (2026-09-09)
 
 
