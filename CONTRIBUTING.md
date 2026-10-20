@@ -64,9 +64,7 @@ packages/presets  Shapes and sports, as data. They live here and not in the engi
                   because the engine must never contain the name of a sport.
 packages/cli      The `bracketeer` command and the MCP server.
 apps/web          Rendering and interaction only.
-skills/           The agent skill. `.claude/skills/bracketeer` is a symlink to it,
-                  so there is one copy to keep current. On Windows, clone with
-                  `git config core.symlinks true` or copy the directory instead.
+skills/           The agent skill, installable with `npx skills add`.
 examples/         Configurations, as data.
 docs/             CONFIG.md is the reference; DESIGN.md is the why.
 ```
