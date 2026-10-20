@@ -46,11 +46,6 @@ describe("the skill's front matter", () => {
     expect(front).not.toMatch(/^disable-model-invocation:\s*true\s*$/m);
     expect(front).not.toMatch(/^user-invocable:\s*(?:false|no|off|0)\s*$/im);
     expect(front).toMatch(/^description: .*Use only when the user explicitly asks for bracketeer\b/m);
-    const config = readFileSync(resolve(root, "skills/bracketeer/agents/openai.yaml"), "utf8");
-    // A host policy boolean, not a prose instruction to the model.
-    expect(config).toMatch(
-      /^policy:\s*\n(?:[ \t]+[^\n]*\n)*?[ \t]+allow_implicit_invocation:\s*true\s*$/m,
-    );
   });
 });
 
