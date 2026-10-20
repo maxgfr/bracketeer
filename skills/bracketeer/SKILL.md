@@ -1,8 +1,6 @@
 ---
 name: bracketeer
 description: Plan competitions, generate fixtures, record scores, calculate standings, and share tournament results. Use only when the user explicitly asks for bracketeer or a tournament, fixture, or standings task.
-metadata:
-  opencode/autoinvoke: 'true'
 ---
 
 # Running a tournament
