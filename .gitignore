@@ -8,3 +8,8 @@ coverage/
 .env.local
 playwright-report/
 test-results/
+
+# skills installed by `npx skills add`
+.agents/skills/
+.claude/skills/
+skills-lock.json
