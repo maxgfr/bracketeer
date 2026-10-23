@@ -219,7 +219,7 @@ MIT
 
 ## Skill invocation: on request or explicit-only
 
-The `bracketeer` skill ships **model-invocable, on request**: its description restricts it to explicit requests, so the agent calls it when you ask for it, not on its own. Invoking it by name always works: `$bracketeer` in Codex or `/bracketeer` in Claude Code and OpenCode (with the plugin namespace when installed as a Claude plugin).
+The `bracketeer` skill ships **model-invocable, on request**: its description restricts it to explicit requests, so the agent calls it when you ask for it, not on its own. Invoking it by name always works: `$bracketeer` in Codex or `/bracketeer` in Claude Code and OpenCode.
 
 Making it explicit-only, so that only its name runs it, is one frontmatter setting, applied to the installed copy:
 
