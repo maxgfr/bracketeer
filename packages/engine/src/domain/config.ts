@@ -46,7 +46,7 @@ export const entrantConfigSchema = z
       redrawEachRound: z.boolean().default(true),
     }),
   ])
-  .default({ kind: "individual" });
+  .prefault({ kind: "individual" });
 
 export const matchShapeSchema = z
   .object({
@@ -58,7 +58,7 @@ export const matchShapeSchema = z
      */
     hasHomeSide: z.boolean().default(false),
   })
-  .default({});
+  .prefault({});
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Axis 2 — how a result is expressed
@@ -114,7 +114,7 @@ export const scoreConfigSchema = z
       allowDraw: z.boolean().default(false),
     }),
   ])
-  .default({ kind: "points" });
+  .prefault({ kind: "points" });
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Axis 6 — points and tiebreakers
@@ -154,7 +154,7 @@ export const pointsSystemSchema = z
     overtimeLoss: z.number().nullable().default(null),
     bonusRules: z.array(bonusRuleSchema).default([]),
   })
-  .default({});
+  .prefault({});
 
 export const tiebreakerKeySchema = z.enum([
   /** Competition points from the points system above. */
@@ -215,7 +215,7 @@ export const standingsConfigSchema = z
         /** Ratings at or below this start on zero. Often called the bar. */
         floor: z.number().nullable().default(null),
       })
-      .default({}),
+      .prefault({}),
     pointsSystem: pointsSystemSchema,
     /**
      * Applied in order until the tie breaks. The final entry should always
@@ -223,7 +223,7 @@ export const standingsConfigSchema = z
      */
     tiebreakers: z
       .array(tiebreakerSchema)
-      .default([
+      .prefault([
         { key: "points", direction: "desc" },
         { key: "head_to_head", direction: "desc" },
         { key: "point_diff", direction: "desc" },
@@ -231,7 +231,7 @@ export const standingsConfigSchema = z
         { key: "drawn_lot", direction: "desc" },
       ]),
   })
-  .default({});
+  .prefault({});
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Axis 5 — pairing
@@ -262,7 +262,7 @@ export const pairingStrategySchema = z.enum([
  */
 export const pairingConstraintsSchema = z
   .object({
-    avoidRematch: z.object({ enabled: z.boolean().default(true), weight: z.number().default(1000) }).default({}),
+    avoidRematch: z.object({ enabled: z.boolean().default(true), weight: z.number().default(1000) }).prefault({}),
     /**
      * Keep entrants sharing a metadata value apart — club, country, or any
      * custom field the organiser defines on entrants.
@@ -273,15 +273,15 @@ export const pairingConstraintsSchema = z
         field: z.string().default("club"),
         weight: z.number().default(500),
       })
-      .default({}),
+      .prefault({}),
     /** Spread byes around instead of giving them to the same person twice. */
-    balanceByes: z.object({ enabled: z.boolean().default(true), weight: z.number().default(800) }).default({}),
+    balanceByes: z.object({ enabled: z.boolean().default(true), weight: z.number().default(800) }).prefault({}),
     /** Keep home and away appearances even. Only meaningful when hasHomeSide is set. */
-    balanceHomeAway: z.object({ enabled: z.boolean().default(true), weight: z.number().default(100) }).default({}),
+    balanceHomeAway: z.object({ enabled: z.boolean().default(true), weight: z.number().default(100) }).prefault({}),
     /** How far the solver may search before falling back to a greedy pairing. */
     searchBudget: z.number().int().positive().default(200_000),
   })
-  .default({});
+  .prefault({});
 
 export const pairingConfigSchema = z
   .object({
@@ -293,7 +293,7 @@ export const pairingConfigSchema = z
      */
     byePolicy: z.enum(["lowest_ranked", "highest_ranked", "random"]).default("lowest_ranked"),
   })
-  .default({});
+  .prefault({});
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Axes 3 and 4 — structure and consolation
@@ -311,7 +311,7 @@ export const seedingSchema = z
     /** For "manual": entrant id per bracket slot, in slot order. */
     slots: z.array(z.string()).default([]),
   })
-  .default({});
+  .prefault({});
 
 /**
  * What happens to a competitor who loses.
@@ -333,15 +333,19 @@ export const qualificationSchema = z
     /** World Cup style: also take the N best runners-up across groups. */
     bestOfRest: z.number().int().min(0).default(0),
   })
-  .default({});
+  .prefault({});
 
 const stageCommon = {
   id: z.string().default("stage"),
   name: z.string().default(""),
-  /** Overrides the tournament-level pairing for this stage only. */
-  pairing: pairingConfigSchema.optional(),
+  /**
+   * Overrides the tournament-level pairing for this stage only. Unwrapped: an
+   * optional over a schema with a default fills the default in, and a stage
+   * that sets nothing must fall back to the tournament's settings.
+   */
+  pairing: pairingConfigSchema.unwrap().optional(),
   /** Overrides the tournament-level standings for this stage only. */
-  standings: standingsConfigSchema.optional(),
+  standings: standingsConfigSchema.unwrap().optional(),
   qualification: qualificationSchema,
 };
 
@@ -401,7 +405,7 @@ const swissSchema = z.object({
       rounds: z.number().int().min(0).default(0),
       bonus: z.number().default(1),
     })
-    .default({}),
+    .prefault({}),
 });
 
 const ladderSchema = z.object({
@@ -456,7 +460,7 @@ const groupsSchema = z.object({
   /** How seeds are spread across groups. "snake" keeps groups balanced. */
   distribution: z.enum(["snake", "sequential", "random"]).default("snake"),
   /** What each group plays. Usually a round robin. */
-  inner: innerStageSchema.default({ kind: "round_robin" }),
+  inner: innerStageSchema.prefault({ kind: "round_robin" }),
 });
 
 export const stageConfigSchema = z.discriminatedUnion("kind", [
@@ -490,7 +494,7 @@ export const ratingConfigSchema = z
         floor: z.number().nullable().default(null),
         ceiling: z.number().nullable().default(null),
       })
-      .default({}),
+      .prefault({}),
     glicko2: z
       .object({
         initialRd: z.number().positive().default(350),
@@ -498,7 +502,7 @@ export const ratingConfigSchema = z
         /** Constrains volatility change. Glickman suggests 0.3–1.2. */
         tau: z.number().positive().default(0.5),
       })
-      .default({}),
+      .prefault({}),
     trueskill: z
       .object({
         mu: z.number().default(25),
@@ -507,11 +511,11 @@ export const ratingConfigSchema = z
         tau: z.number().positive().default(25 / 300),
         drawProbability: z.number().min(0).max(1).default(0.1),
       })
-      .default({}),
+      .prefault({}),
     /** Whether the displayed rating is the entrant's starting one plus this event, or this event alone. */
     carryOver: z.boolean().default(true),
   })
-  .default({});
+  .prefault({});
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Scheduling
@@ -536,7 +540,7 @@ export const scheduleConfigSchema = z
     concurrentMatches: z.number().int().positive().nullable().default(null),
     timezone: z.string().default("UTC"),
   })
-  .default({});
+  .prefault({});
 
 /* ────────────────────────────────────────────────────────────────────────────
  * The whole thing
@@ -553,8 +557,8 @@ export const tournamentConfigSchema = z.object({
   /** Stages run in order; each feeds its qualifiers to the next. */
   stages: z
     .array(stageConfigSchema)
-    .min(1)
-    .default([{ kind: "single_elimination", id: "main" }]),
+    .min(1, "A tournament needs at least 1 stage.")
+    .prefault([{ kind: "single_elimination", id: "main" }]),
   /** Custom entrant metadata fields the organiser wants to record and filter on. */
   entrantFields: z
     .array(
