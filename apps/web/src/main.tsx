@@ -1,15 +1,19 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
+import { initStorage } from "./lib/storage.js";
 import "./index.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root is missing from index.html");
 
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+// Tournaments are read synchronously during render, so the database is loaded first.
+void initStorage().then(() =>
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  ),
 );
 
 /**
