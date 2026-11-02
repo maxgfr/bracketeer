@@ -2,6 +2,13 @@
 
 What changed in each release, generated from the commit messages.
 
+## [0.3.1](https://github.com/maxgfr/bracketeer/compare/v0.3.0...v0.3.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** Move to Vitest 5 and zod 4, and clear every high advisory ([#10](https://github.com/maxgfr/bracketeer/issues/10)) ([3a3bf3a](https://github.com/maxgfr/bracketeer/commit/3a3bf3a3e75b2765ffc3dff1b808206b4dc3f55e))
+
 # [0.3.0](https://github.com/maxgfr/bracketeer/compare/v0.2.3...v0.3.0) (2026-10-08)
 
 
