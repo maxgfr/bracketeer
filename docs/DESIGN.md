@@ -162,8 +162,9 @@ components and catch the wiring that engine unit tests cannot.
   losers fall sideways at every round, not only the first. Of the named
   structures a survey turned up, it is the only one this model does not reach;
   everything else either exists or composes.
-- **`localStorage` is the only local persistence**, so a cleared browser loses
-  what has not been exported. The app warns when the browser refuses to save.
+- **The browser is the only local persistence** (event logs in IndexedDB,
+  small settings in `localStorage`), so a cleared browser loses what has not
+  been exported. The app warns when the browser refuses to save.
 
 ## Verification
 

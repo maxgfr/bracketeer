@@ -119,11 +119,10 @@ export function useTournament(
   useEffect(() => {
     if (log.length === 0 || lastSaved.current === log) return;
     lastSaved.current = log;
-    const ok = saveLog(id, log, {
+    void saveLog(id, log, {
       name: state.name || "Untitled",
       entrants: state.entrants.length,
-    });
-    setPersisted(ok);
+    }).then(setPersisted);
   }, [id, log, state.name, state.entrants.length]);
 
   const dispatch = useCallback(
