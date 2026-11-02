@@ -30,8 +30,11 @@ export default defineConfig({
       /**
        * Set just below where the suite sits, so a real regression trips it while
        * ordinary refactoring does not — the same rule the engine uses.
+       *
+       * Measured by Vitest 5's AST-aware v8 remapping, which counts statements
+       * and branches more strictly than Vitest 3 did; re-baselined on the upgrade.
        */
-      thresholds: { statements: 94, functions: 100, lines: 94, branches: 82 },
+      thresholds: { statements: 87, functions: 96, lines: 92, branches: 73 },
     },
   },
 });

@@ -213,7 +213,7 @@ describe("the rules", () => {
     fireEvent.change(raw, { target: { value: '{"stages":[]}' } });
 
     await waitFor(() => {
-      expect(screen.getByText(/at least 1 element/i)).toBeInTheDocument();
+      expect(screen.getByText(/at least 1 stage/i)).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
 

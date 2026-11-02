@@ -12,7 +12,12 @@ beforeEach(() => {
     createObjectURL: vi.fn(() => "blob:http://localhost/stub"),
     revokeObjectURL: vi.fn(),
   });
-  vi.spyOn(window, "print").mockImplementation(() => undefined);
+  // Defined rather than spied on: happy-dom 21 no longer has window.print.
+  Object.defineProperty(window, "print", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(() => undefined),
+  });
 
   // A download is an anchor click. happy-dom treats that as navigation and
   // corrupts window.location for every test that follows, so the click is

@@ -7,6 +7,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
+      // Two `export *` lines. The tests import the data files directly, and Vitest 5
+      // counts a barrel nobody imports as uncovered statements.
+      exclude: ["src/index.ts"],
       reporter: ["text", "json-summary"],
       /**
        * These are data files, and the tests parse and play every entry in them,

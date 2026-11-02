@@ -163,7 +163,7 @@ writes(
     name: z.string().optional(),
     seed: z.number().nullable().optional().describe("null to unseed them."),
     meta: z
-      .record(z.string())
+      .record(z.string(), z.string())
       .optional()
       .describe('Custom field values, e.g. {"club": "North"}. Keys must be defined in entrantFields.'),
   },

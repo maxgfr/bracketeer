@@ -20,12 +20,15 @@ export default defineConfig({
        * purpose: the part of it that matters is the transport, and that is
        * covered by the two-process integration test, which needs the network and
        * so cannot run here.
+       *
+       * Measured by Vitest 5's AST-aware v8 remapping, which counts statements
+       * and branches more strictly than Vitest 3 did; re-baselined on the upgrade.
        */
       thresholds: {
-        statements: 90,
+        statements: 86,
         functions: 82,
-        lines: 90,
-        branches: 78,
+        lines: 88,
+        branches: 72,
       },
     },
   },
